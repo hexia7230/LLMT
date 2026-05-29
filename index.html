@@ -211,7 +211,7 @@ progress::-moz-progress-bar { background: #5a8a5a; }
         </div>
         <div class="kv" style="margin-top:4px">
           <span class="k">使用モデル</span>
-          <span class="v" style="color:#777">google/gemma-2-2b-it</span>
+          <span class="v" style="color:#777">Qwen/Qwen2.5-1.5B-Instruct</span>
         </div>
       </div>
     </div>
@@ -251,7 +251,18 @@ progress::-moz-progress-bar { background: #5a8a5a; }
 
     <hr class="sep">
 
-    <!-- Progress -->
+    <!-- Download progress (shown during model DL) -->
+    <div class="section" id="dl-section" style="display:none">
+      <label>ファイルダウンロード</label>
+      <div id="dl-filename" style="font-size:11px;color:#777;margin-bottom:4px;height:16px"></div>
+      <progress id="dl-prog" value="0" max="100"></progress>
+      <div style="display:flex;justify-content:space-between;margin-top:3px;font-size:11px;color:#666">
+        <span id="dl-bytes"></span>
+        <span id="dl-pct"></span>
+      </div>
+    </div>
+
+    <!-- Overall progress -->
     <div class="section">
       <label>進行状況</label>
       <progress id="prog" value="0" max="100"></progress>
@@ -271,11 +282,12 @@ progress::-moz-progress-bar { background: #5a8a5a; }
 "use strict";
 
 const BASE = "http://127.0.0.1:7331";
-let pollTimer  = null;
-let xmlReady   = false;
-let modelReady = false;
-let prevStatus = "";
-let prevMsg    = "";
+let pollTimer    = null;
+let xmlReady     = false;
+let modelReady   = false;
+let prevStatus   = "";
+let prevMsg      = "";
+let knownLogLen  = 0;   // how many log_lines we have already rendered
 
 // ── Startup: wait for server ──────────────────────────────────────────────────
 function waitForServer() {
@@ -337,7 +349,40 @@ function updateUI(s) {
   document.getElementById("load-model-section").classList
     .toggle("hidden", modelReady);
 
-  // Start button enable logic
+  // ── Per-file download progress ──────────────────────────────────────────
+  const dlSection = document.getElementById("dl-section");
+  if (s.status === "downloading") {
+    dlSection.style.display = "";
+    document.getElementById("dl-filename").textContent = s.dl_file || "";
+    const dlProg = document.getElementById("dl-prog");
+    dlProg.value = s.dl_pct || 0;
+    dlProg.max   = 100;
+    if (s.dl_total > 0) {
+      const done = (s.dl_done  / 1024 / 1024).toFixed(1);
+      const tot  = (s.dl_total / 1024 / 1024).toFixed(1);
+      document.getElementById("dl-bytes").textContent = `${done} MB / ${tot} MB`;
+    } else {
+      const done = s.dl_done > 0 ? (s.dl_done / 1024 / 1024).toFixed(1) + " MB" : "";
+      document.getElementById("dl-bytes").textContent = done;
+    }
+    document.getElementById("dl-pct").textContent =
+      s.dl_pct > 0 ? s.dl_pct + "%" : "";
+  } else {
+    dlSection.style.display = "none";
+  }
+
+  // ── Overall progress bar ────────────────────────────────────────────────
+  const prog = document.getElementById("prog");
+  if (s.total > 0) {
+    prog.max   = s.total;
+    prog.value = s.current;
+  } else if (s.status === "loading") {
+    prog.max = 100; prog.value = 0;
+  } else {
+    prog.max = 100; prog.value = 0;
+  }
+
+  // Start button
   const btnStart = document.getElementById("btn-start");
   const canStart = modelReady && xmlReady
     && s.status !== "translating"
@@ -345,40 +390,30 @@ function updateUI(s) {
     && s.status !== "loading";
   btnStart.disabled = !canStart;
   document.getElementById("start-note").textContent =
-    canStart ? "翻訳を開始できます" :
-    !modelReady ? "モデルをロードしてください" :
-    !xmlReady   ? "XMLを確認してください" :
-    s.status === "translating" ? "翻訳中..." : "";
-
-  // Progress bar
-  const prog = document.getElementById("prog");
-  if (s.total > 0) {
-    prog.max   = s.total;
-    prog.value = s.current;
-  } else {
-    prog.max   = 100;
-    prog.value = (s.status === "downloading" || s.status === "loading") ? 0 : 0;
-  }
+    canStart          ? "翻訳を開始できます" :
+    !modelReady       ? "モデルをロードしてください" :
+    !xmlReady         ? "XMLを確認してください" :
+    s.status === "translating" ? "翻訳中..." :
+    s.status === "downloading" ? "ダウンロード中..." :
+    s.status === "loading"     ? "モデルをロード中..." : "";
 
   // Status message
   const msg = s.message || s.status;
   document.getElementById("status-msg").textContent = msg;
+  if (s.status === "done")  document.getElementById("status-msg").style.color = "#5a9a5a";
+  else if (s.status === "error") document.getElementById("status-msg").style.color = "#a05050";
+  else document.getElementById("status-msg").style.color = "#888";
 
-  // Log new lines
-  if (msg !== prevMsg || s.status !== prevStatus) {
-    if (msg) appendLog(msg);
-    prevMsg    = msg;
-    prevStatus = s.status;
+  // ── Server-side log_lines (append only, pip + model + translation) ──────
+  const allLines = (s.pip_log || []).concat(s.log_lines || []);
+  if (allLines.length > knownLogLen) {
+    const newLines = allLines.slice(knownLogLen);
+    newLines.forEach(l => appendLog(l, true));  // true = no timestamp prefix
+    knownLogLen = allLines.length;
   }
 
-  // Done flash
-  if (s.status === "done") {
-    document.getElementById("status-msg").style.color = "#5a9a5a";
-  } else if (s.status === "error") {
-    document.getElementById("status-msg").style.color = "#a05050";
-  } else {
-    document.getElementById("status-msg").style.color = "#888";
-  }
+  prevStatus = s.status;
+  prevMsg    = msg;
 }
 
 // ── Actions ───────────────────────────────────────────────────────────────────
@@ -444,10 +479,14 @@ function startTranslation() {
 }
 
 // ── Log helper ────────────────────────────────────────────────────────────────
-function appendLog(text) {
+function appendLog(text, noTs) {
   const log = document.getElementById("log");
-  const ts  = new Date().toLocaleTimeString("ja-JP", {hour12:false});
-  log.textContent += `[${ts}] ${text}\n`;
+  if (noTs) {
+    log.textContent += text + "\n";
+  } else {
+    const ts = new Date().toLocaleTimeString("ja-JP", {hour12:false});
+    log.textContent += `[${ts}] ${text}\n`;
+  }
   log.scrollTop = log.scrollHeight;
 }
 
