@@ -15,8 +15,12 @@ os.makedirs(CACHE_DIR, exist_ok=True)
 
 PIP_TARGET = os.path.join(CACHE_DIR, "pypackages")
 os.makedirs(PIP_TARGET, exist_ok=True)
-if PIP_TARGET not in sys.path:
-    sys.path.insert(0, PIP_TARGET)
+
+# PC
+import site
+sys.path = [PIP_TARGET] + [p for p in sys.path if "site-packages" not in p and "pip" not in p]
+site.addsitedir(PIP_TARGET)
+
 
 # ── Bootstrap pip packages into Cache ─────────────────────────────────────────
 # pip install log buffer (written before Flask starts)
