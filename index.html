@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>LLM-Translator</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: "MS UI Gothic", "MS Gothic", "Yu Gothic", Meiryo, monospace;
+  font-size: 13px;
+  background: #1e1e1e;
+  color: #d4d4d4;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-height: 100vh;
+  padding: 32px 16px;
+}
+
+#app {
+  width: 560px;
+  max-width: 100%;
+}
+
+h1 {
+  font-size: 16px;
+  font-weight: bold;
+  letter-spacing: 2px;
+  border-bottom: 1px solid #444;
+  padding-bottom: 8px;
+  margin-bottom: 24px;
+  color: #c8c8c8;
+}
+
+.section {
+  margin-bottom: 20px;
+}
+
+label {
+  display: block;
+  margin-bottom: 4px;
+  color: #9e9e9e;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+input[type="text"] {
+  width: 100%;
+  padding: 6px 8px;
+  background: #2d2d2d;
+  border: 1px solid #444;
+  color: #d4d4d4;
+  font-family: inherit;
+  font-size: 13px;
+  outline: none;
+}
+input[type="text"]:focus {
+  border-color: #666;
+}
+
+.row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+button {
+  padding: 6px 16px;
+  background: #2d2d2d;
+  border: 1px solid #555;
+  color: #d4d4d4;
+  font-family: inherit;
+  font-size: 13px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+button:hover { background: #3a3a3a; }
+button:active { background: #222; }
+button:disabled {
+  color: #555;
+  border-color: #333;
+  cursor: not-allowed;
+  background: #252525;
+}
+
+#btn-start {
+  padding: 8px 28px;
+  border-color: #666;
+  color: #c8c8c8;
+  font-size: 14px;
+  font-weight: bold;
+  letter-spacing: 1px;
+}
+#btn-start:not(:disabled):hover {
+  background: #383838;
+  border-color: #888;
+}
+
+.info-box {
+  background: #252525;
+  border: 1px solid #3a3a3a;
+  padding: 10px 12px;
+  font-size: 12px;
+  line-height: 1.8;
+  min-height: 60px;
+}
+
+.info-row {
+  display: flex;
+  gap: 24px;
+  margin-bottom: 4px;
+}
+
+.kv { display: flex; gap: 8px; }
+.kv .k { color: #888; min-width: 80px; }
+.kv .v { color: #d4d4d4; font-variant-numeric: tabular-nums; }
+
+progress {
+  width: 100%;
+  height: 12px;
+  appearance: none;
+  -webkit-appearance: none;
+  border: 1px solid #444;
+  background: #2a2a2a;
+  display: block;
+}
+progress::-webkit-progress-bar  { background: #2a2a2a; }
+progress::-webkit-progress-value { background: #5a8a5a; }
+progress::-moz-progress-bar { background: #5a8a5a; }
+
+#status-msg {
+  margin-top: 6px;
+  font-size: 11px;
+  color: #888;
+  min-height: 16px;
+  letter-spacing: 0.5px;
+}
+
+#log {
+  background: #1a1a1a;
+  border: 1px solid #333;
+  padding: 8px;
+  font-size: 11px;
+  font-family: "Courier New", "MS Gothic", monospace;
+  height: 160px;
+  overflow-y: auto;
+  white-space: pre-wrap;
+  color: #7a9e7a;
+  line-height: 1.6;
+}
+
+.sep {
+  border: none;
+  border-top: 1px solid #333;
+  margin: 20px 0;
+}
+
+.badge {
+  display: inline-block;
+  padding: 1px 6px;
+  font-size: 10px;
+  border: 1px solid #555;
+  color: #888;
+  margin-left: 8px;
+  vertical-align: middle;
+}
+.badge.ok    { border-color: #4a7a4a; color: #5a9a5a; }
+.badge.warn  { border-color: #7a6a30; color: #a08a3a; }
+.badge.err   { border-color: #7a3a3a; color: #a04a4a; }
+
+.setup-block {
+  background: #252525;
+  border: 1px solid #3a3a3a;
+  padding: 12px;
+  margin-bottom: 20px;
+}
+.setup-block p { margin-bottom: 8px; color: #9e9e9e; font-size: 12px; line-height: 1.6; }
+.setup-block code {
+  background: #1a1a1a;
+  border: 1px solid #333;
+  padding: 2px 6px;
+  font-family: "Courier New", monospace;
+  font-size: 11px;
+  color: #c0c0c0;
+}
+
+.hidden { display: none !important; }
+</style>
+</head>
+<body>
+<div id="app">
+
+  <h1>LLM-TRANSLATOR <span style="font-size:10px;color:#555;font-weight:normal;letter-spacing:0">v1.0</span></h1>
+
+  <!-- Setup / initial check -->
+  <div id="setup-panel" class="setup-block">
+    <p>バックエンドに接続しています...</p>
+  </div>
+
+  <!-- Main UI (hidden until server is up) -->
+  <div id="main-panel" class="hidden">
+
+    <!-- Server & Model status -->
+    <div class="section">
+      <div class="info-box">
+        <div class="info-row">
+          <div class="kv"><span class="k">サーバー</span><span class="v" id="srv-status">-</span></div>
+          <div class="kv"><span class="k">モデル</span><span class="v" id="mdl-status">-</span></div>
+        </div>
+        <div class="kv" style="margin-top:4px">
+          <span class="k">使用モデル</span>
+          <span class="v" style="color:#777">google/gemma-2-2b-it</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Model load button (shown when model not ready) -->
+    <div class="section" id="load-model-section">
+      <button id="btn-load-model" onclick="loadModel()">モデルをダウンロード / ロード</button>
+      <span style="margin-left:10px;font-size:11px;color:#666">初回は ~5 GB のダウンロードが発生します</span>
+    </div>
+
+    <hr class="sep">
+
+    <!-- XML file path -->
+    <div class="section">
+      <label>XML ファイルパス</label>
+      <div class="row">
+        <input type="text" id="xml-path" placeholder="例: C:\Mods\translation\en_jp.xml">
+        <button onclick="checkXml()">確認</button>
+      </div>
+    </div>
+
+    <!-- XML info -->
+    <div class="section">
+      <div class="info-box">
+        <div class="info-row">
+          <div class="kv"><span class="k">エントリー数</span><span class="v" id="entry-count">-</span></div>
+          <div class="kv"><span class="k">ファイル</span><span class="v" id="file-name" style="color:#666">-</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Start -->
+    <div class="section" style="display:flex;align-items:center;gap:16px">
+      <button id="btn-start" disabled onclick="startTranslation()">翻訳開始</button>
+      <span id="start-note" style="font-size:11px;color:#666">XMLを確認してから開始できます</span>
+    </div>
+
+    <hr class="sep">
+
+    <!-- Progress -->
+    <div class="section">
+      <label>進行状況</label>
+      <progress id="prog" value="0" max="100"></progress>
+      <div id="status-msg">待機中</div>
+    </div>
+
+    <!-- Log -->
+    <div class="section">
+      <label>ログ</label>
+      <div id="log"></div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+"use strict";
+
+const BASE = "http://127.0.0.1:7331";
+let pollTimer  = null;
+let xmlReady   = false;
+let modelReady = false;
+let prevStatus = "";
+let prevMsg    = "";
+
+// ── Startup: wait for server ──────────────────────────────────────────────────
+function waitForServer() {
+  const panel = document.getElementById("setup-panel");
+  let attempts = 0;
+
+  panel.innerHTML = `
+    <p>バックエンド (translator.py) の起動を待っています...</p>
+    <p>まだ起動していない場合は <code>python translator.py</code> を実行してください。</p>
+    <p id="attempt-note" style="margin-top:8px;color:#666"></p>
+  `;
+
+  const check = () => {
+    attempts++;
+    document.getElementById("attempt-note").textContent =
+      `接続試行: ${attempts} 回目`;
+
+    fetch(BASE + "/api/status")
+      .then(r => r.json())
+      .then(() => {
+        // Server is up
+        panel.classList.add("hidden");
+        document.getElementById("main-panel").classList.remove("hidden");
+        startPoll();
+      })
+      .catch(() => {
+        setTimeout(check, 2000);
+      });
+  };
+  check();
+}
+
+// ── Polling ───────────────────────────────────────────────────────────────────
+function startPoll() {
+  pollTimer = setInterval(pollStatus, 800);
+  pollStatus();
+}
+
+function pollStatus() {
+  fetch(BASE + "/api/status")
+    .then(r => r.json())
+    .then(s => updateUI(s))
+    .catch(() => {});
+}
+
+function updateUI(s) {
+  // Server badge
+  document.getElementById("srv-status").innerHTML =
+    '<span class="badge ok">接続中</span>';
+
+  // Model badge
+  modelReady = s.model_ready;
+  const mBadge = modelReady
+    ? '<span class="badge ok">ロード済み</span>'
+    : '<span class="badge warn">未ロード</span>';
+  document.getElementById("mdl-status").innerHTML = mBadge;
+
+  // Show/hide load button
+  document.getElementById("load-model-section").classList
+    .toggle("hidden", modelReady);
+
+  // Start button enable logic
+  const btnStart = document.getElementById("btn-start");
+  const canStart = modelReady && xmlReady
+    && s.status !== "translating"
+    && s.status !== "downloading"
+    && s.status !== "loading";
+  btnStart.disabled = !canStart;
+  document.getElementById("start-note").textContent =
+    canStart ? "翻訳を開始できます" :
+    !modelReady ? "モデルをロードしてください" :
+    !xmlReady   ? "XMLを確認してください" :
+    s.status === "translating" ? "翻訳中..." : "";
+
+  // Progress bar
+  const prog = document.getElementById("prog");
+  if (s.total > 0) {
+    prog.max   = s.total;
+    prog.value = s.current;
+  } else {
+    prog.max   = 100;
+    prog.value = (s.status === "downloading" || s.status === "loading") ? 0 : 0;
+  }
+
+  // Status message
+  const msg = s.message || s.status;
+  document.getElementById("status-msg").textContent = msg;
+
+  // Log new lines
+  if (msg !== prevMsg || s.status !== prevStatus) {
+    if (msg) appendLog(msg);
+    prevMsg    = msg;
+    prevStatus = s.status;
+  }
+
+  // Done flash
+  if (s.status === "done") {
+    document.getElementById("status-msg").style.color = "#5a9a5a";
+  } else if (s.status === "error") {
+    document.getElementById("status-msg").style.color = "#a05050";
+  } else {
+    document.getElementById("status-msg").style.color = "#888";
+  }
+}
+
+// ── Actions ───────────────────────────────────────────────────────────────────
+function loadModel() {
+  const btn = document.getElementById("btn-load-model");
+  btn.disabled = true;
+  btn.textContent = "ロード中...";
+  appendLog("モデルのダウンロード/ロードを開始します...");
+
+  fetch(BASE + "/api/load_model", { method: "POST" })
+    .then(r => r.json())
+    .then(d => {
+      if (!d.ok) { appendLog("ERROR: " + d.error); btn.disabled = false; }
+    })
+    .catch(e => { appendLog("ERROR: " + e); btn.disabled = false; });
+}
+
+function checkXml() {
+  const path = document.getElementById("xml-path").value.trim();
+  if (!path) { appendLog("XMLパスを入力してください"); return; }
+
+  fetch(BASE + "/api/xml_info", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ xml_path: path })
+  })
+  .then(r => r.json())
+  .then(d => {
+    if (d.ok) {
+      xmlReady = true;
+      document.getElementById("entry-count").textContent = d.count + " 件";
+      const fname = path.replace(/\\/g,"/").split("/").pop();
+      document.getElementById("file-name").textContent = fname;
+      appendLog("XML確認OK: " + d.count + " エントリー (" + fname + ")");
+    } else {
+      xmlReady = false;
+      document.getElementById("entry-count").textContent = "エラー";
+      appendLog("ERROR: " + d.error);
+    }
+    // Refresh start button
+    fetch(BASE + "/api/status").then(r=>r.json()).then(s=>updateUI(s));
+  })
+  .catch(e => { appendLog("ERROR: " + e); });
+}
+
+function startTranslation() {
+  const path = document.getElementById("xml-path").value.trim();
+  if (!path) { appendLog("XMLパスを指定してください"); return; }
+
+  document.getElementById("btn-start").disabled = true;
+  appendLog("翻訳ジョブを送信しました: " + path);
+
+  fetch(BASE + "/api/translate", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ xml_path: path })
+  })
+  .then(r => r.json())
+  .then(d => {
+    if (!d.ok) appendLog("ERROR: " + d.error);
+  })
+  .catch(e => appendLog("ERROR: " + e));
+}
+
+// ── Log helper ────────────────────────────────────────────────────────────────
+function appendLog(text) {
+  const log = document.getElementById("log");
+  const ts  = new Date().toLocaleTimeString("ja-JP", {hour12:false});
+  log.textContent += `[${ts}] ${text}\n`;
+  log.scrollTop = log.scrollHeight;
+}
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+window.addEventListener("load", waitForServer);
+</script>
+</body>
+</html>
