@@ -3,18 +3,16 @@ title LLM-Translator
 cd /d "%~dp0"
 
 if not exist venv\Scripts\activate.bat (
-    echo [ERROR] Virtual environment not found. Run setup.bat first.
+    echo [ERROR] venv が見つかりません。先に setup.bat を実行してください。
     pause
     exit /b 1
 )
 
-echo Starting server via virtual environment (Low Priority Mode)...
-echo Browser will open automatically.
-echo Close this window to stop.
+echo Starting LLM-Translator...
+echo ブラウザが自動で開きます。このウィンドウを閉じると停止します。
 echo.
 
 call venv\Scripts\activate
-
-start /low /b "" python translator.py
+python translator.py
 
 pause

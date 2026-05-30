@@ -223,12 +223,12 @@ function updateUI(s) {
   }
 
   if (s.status === "loading") {
-    display.textContent = `状態: ${s.message}`;
+    display.textContent = `状態: ${s.message} (${s.progress}/${s.total} - ${pct}% | 残り ${s.eta || "--"})`;
     display.style.borderLeftColor = "#f1c40f";
     btnStart.disabled = true;
     btnStop.disabled = false;
   } else if (s.status === "translating") {
-    display.textContent = `状態: ${s.message} (${s.progress} / ${s.total} - ${pct}%)`;
+    display.textContent = `状態: ${s.message} (${s.progress}/${s.total} - ${pct}% | 残り ${s.eta || "--"})`;
     display.style.borderLeftColor = "#3498db";
     btnStart.disabled = true;
     btnStop.disabled = false;
