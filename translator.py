@@ -1,6 +1,6 @@
 """
 LLM-Translator backend  —  Skyrim SST XML -> Japanese
-Qwen/Qwen2.5-1.5B-Instruct  (CPU float32 / CUDA float16)
+meta-llama/Llama-3.2-3B-Instruct  (CPU float32 / CUDA float16)
 bitsandbytes は使わない (Windows で動作しないため)
 """
 
@@ -15,8 +15,7 @@ BASE_DIR        = os.path.dirname(os.path.abspath(__file__))
 MODEL_CACHE_DIR = os.path.join(BASE_DIR, "Cache", "model")
 os.makedirs(MODEL_CACHE_DIR, exist_ok=True)
 
-# 0.5B は翻訳精度が低すぎるので 1.5B を使う
-TARGET_MODEL = "Qwen/Qwen2.5-1.5B-Instruct"
+TARGET_MODEL = "meta-llama/Llama-3.2-3B-Instruct"
 
 # ── Global state ──────────────────────────────────────────────────────────────
 state = {
@@ -155,7 +154,7 @@ def _vocab_sub(m):
 
 # ── Classifiers ───────────────────────────────────────────────────────────────
 _PASSTHRU_RE = re.compile(
-    r"""^[\s\d_\-=+*/\\|<>@#$%^&()\[\]{}'"`~,.!?;:]+$"""
+    r"""^[\s\d_\-=+*/\\|<>@#$%^&()\[\]{}'\"`~,.!?;:]+$"""
     r"""|^\{\{[^}]+\}\}$"""
     r"""|^\$[A-Za-z_]\w*$"""
 )
@@ -184,7 +183,8 @@ _TRAILING_PAREN_RE = re.compile(r"\s*[\(\[].*?[\)\]]\s*$")
 
 def _clean(raw: str, src: str) -> str:
     text = raw.strip()
-    for stop in ("<|im_end|>", "<|im_start|>", "<|endoftext|>"):
+    # Strip Llama / Qwen special tokens
+    for stop in ("<|eot_id|>", "<|end_of_text|>", "<|im_end|>", "<|im_start|>", "<|endoftext|>"):
         if stop in text:
             text = text[:text.index(stop)].strip()
     if not text:
@@ -197,14 +197,17 @@ def _clean(raw: str, src: str) -> str:
     text = _TRAILING_PAREN_RE.sub("", text).strip()
     if not text:
         return src
-    # Mostly ASCII -> probably not Japanese, fallback
-    ascii_alpha = sum(1 for c in text if c.isascii() and c.isalpha())
-    if len(text) > 0 and ascii_alpha / len(text) > 0.55:
-        return src
+    # If output contains virtually no non-ASCII (i.e. still mostly Latin), fallback
+    # Use a looser threshold: only fallback if >70% ASCII alpha AND no CJK at all
+    has_cjk = any("\u3000" <= c <= "\u9fff" or "\u30a0" <= c <= "\u30ff" or "\u3040" <= c <= "\u309f" for c in text)
+    if not has_cjk:
+        ascii_alpha = sum(1 for c in text if c.isascii() and c.isalpha())
+        if len(text) > 0 and ascii_alpha / len(text) > 0.55:
+            return src
     return text
 
 
-# ── Prompt ────────────────────────────────────────────────────────────────────
+# ── Prompt (Llama 3.2 Instruct format) ───────────────────────────────────────
 SYSTEM_PROMPT = (
     "You are a Skyrim MOD Japanese localization engine.\n\n"
     "STRICT RULES:\n"
@@ -219,10 +222,14 @@ SYSTEM_PROMPT = (
 )
 
 def _build_prompt(text: str) -> str:
+    # Llama 3.2 Instruct uses <|begin_of_text|> header format
     return (
-        f"<|im_start|>system\n{SYSTEM_PROMPT}<|im_end|>\n"
-        f"<|im_start|>user\n{text}<|im_end|>\n"
-        f"<|im_start|>assistant\n"
+        "<|begin_of_text|>"
+        "<|start_header_id|>system<|end_header_id|>\n\n"
+        f"{SYSTEM_PROMPT}<|eot_id|>"
+        "<|start_header_id|>user<|end_header_id|>\n\n"
+        f"{text}<|eot_id|>"
+        "<|start_header_id|>assistant<|end_header_id|>\n\n"
     )
 
 
@@ -266,7 +273,8 @@ def _translate_one(src: str) -> str:
     prompt = _build_prompt(src)
     try:
         out    = pipe_obj(prompt)[0]["generated_text"]
-        marker = "<|im_start|>assistant\n"
+        # Extract only the assistant reply after the last assistant header
+        marker = "<|start_header_id|>assistant<|end_header_id|>\n\n"
         idx    = out.rfind(marker)
         reply  = out[idx + len(marker):] if idx != -1 else out[len(prompt):]
         return _clean(reply, src)

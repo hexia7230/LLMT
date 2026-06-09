@@ -23,13 +23,52 @@ body {
   max-width: 100%;
 }
 
+.header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid #444;
+  padding-bottom: 8px;
+  margin-bottom: 24px;
+}
+
 h1 {
   font-size: 16px;
   font-weight: bold;
   letter-spacing: 2px;
-  border-bottom: 1px solid #444;
-  padding-bottom: 8px;
-  margin-bottom: 24px;
+  color: #c8c8c8;
+}
+
+/* Language Toggle */
+#lang-toggle {
+  display: flex;
+  border: 1px solid #444;
+  border-radius: 2px;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+#lang-toggle button {
+  flex: none;
+  padding: 4px 10px;
+  font-size: 11px;
+  font-weight: bold;
+  cursor: pointer;
+  border: none;
+  border-radius: 0;
+  background: #2d2d2d;
+  color: #858585;
+  letter-spacing: 1px;
+  transition: background 0.15s, color 0.15s;
+}
+
+#lang-toggle button.active {
+  background: #007acc;
+  color: #fff;
+}
+
+#lang-toggle button:not(.active):hover {
+  background: #3c3c3c;
   color: #c8c8c8;
 }
 
@@ -87,7 +126,7 @@ input[type="text"]:focus {
 
 .status-box {
   background: #2d2d2d;
-  border-left: 4px solid #007acc;
+  border-left: 4px solid #555;
   padding: 12px;
   font-size: 13px;
   margin-bottom: 24px;
@@ -141,35 +180,41 @@ textarea {
 <body>
 
 <div id="app">
-  <h1>LLM-TRANSLATOR v1.0</h1>
-  
+  <div class="header-row">
+    <h1>LLM-TRANSLATOR v1.0</h1>
+    <div id="lang-toggle">
+      <button id="btn-lang-ja" class="active" onclick="setLang('ja')">JA</button>
+      <button id="btn-lang-en" onclick="setLang('en')">EN</button>
+    </div>
+  </div>
+
   <div class="section">
-    <label for="xml-path">SST XML File Path</label>
+    <label id="label-path" for="xml-path">SST XML ファイルパス</label>
     <input type="text" id="xml-path" placeholder="C:\path\to\your\file.xml" oninput="cleanInputPath(this)" onblur="cleanInputPath(this)">
   </div>
 
   <div class="grid-info">
     <div class="info-item">
-      <div class="info-label">File Name</div>
+      <div class="info-label" id="label-filename">ファイル名</div>
       <div id="file-name" class="info-val">-</div>
     </div>
     <div class="info-item">
-      <div class="info-label">Target Strings</div>
+      <div class="info-label" id="label-entries">対象文字列数</div>
       <div id="entry-count" class="info-val">-</div>
     </div>
   </div>
 
   <div id="status-display" class="status-box">
-    状態: 待機中
+    <span id="status-prefix">状態:</span>&nbsp;<span id="status-message">待機中</span>
   </div>
 
   <div class="actions">
-    <button id="btn-start" onclick="startTranslation()" disabled>START</button>
-    <button id="btn-stop" onclick="stopTranslation()" disabled>STOP</button>
+    <button id="btn-start" onclick="startTranslation()" disabled>開始</button>
+    <button id="btn-stop" onclick="stopTranslation()" disabled>停止</button>
   </div>
 
   <div class="log-container">
-    <label>Console Log</label>
+    <label id="label-log">コンソールログ</label>
     <textarea id="log" readonly></textarea>
   </div>
 </div>
@@ -178,8 +223,78 @@ textarea {
 const BASE = window.location.origin;
 let xmlReady = false;
 let currentPath = "";
+let currentLang = "ja";
 
-// フロントエンド側で入力された瞬間にクォーテーションを完全自動消去する
+// ── Translations ──────────────────────────────────────────────────────────────
+const STRINGS = {
+  ja: {
+    labelPath:    "SST XML ファイルパス",
+    placeholder:  "C:\\path\\to\\your\\file.xml",
+    labelFilename:"ファイル名",
+    labelEntries: "対象文字列数",
+    statusPrefix: "状態:",
+    labelLog:     "コンソールログ",
+    btnStart:     "開始",
+    btnStop:      "停止",
+    idle:         "待機中",
+    loading:      "モデルをロード中...",
+    done:         "完了",
+    statusLoading:(msg, pct, eta) => `${msg} (${pct}% | 残り ${eta})`,
+    statusTranslating:(msg, pct, eta) => `${msg} (${pct}% | 残り ${eta})`,
+    statusDone:   (msg) => msg,
+    statusIdle:   (msg) => msg,
+    xmlOk:        (count, fname) => `XML 確認 OK: ${count} エントリー (${fname})`,
+    xmlError:     (err) => `ERROR: ${err}`,
+    jobSent:      (path) => `翻訳ジョブを送信しました: ${path}`,
+    needPath:     "XML パスを指定してください",
+    stopped:      "翻訳を強制停止しました。",
+  },
+  en: {
+    labelPath:    "SST XML File Path",
+    placeholder:  "C:\\path\\to\\your\\file.xml",
+    labelFilename:"File Name",
+    labelEntries: "Target Strings",
+    statusPrefix: "Status:",
+    labelLog:     "Console Log",
+    btnStart:     "Start",
+    btnStop:      "Stop",
+    idle:         "Idle",
+    loading:      "Loading model...",
+    done:         "Done",
+    statusLoading:(msg, pct, eta) => `${msg} (${pct}% | ETA ${eta})`,
+    statusTranslating:(msg, pct, eta) => `${msg} (${pct}% | ETA ${eta})`,
+    statusDone:   (msg) => msg,
+    statusIdle:   (msg) => msg,
+    xmlOk:        (count, fname) => `XML OK: ${count} entries (${fname})`,
+    xmlError:     (err) => `ERROR: ${err}`,
+    jobSent:      (path) => `Translation job submitted: ${path}`,
+    needPath:     "Please specify an XML path",
+    stopped:      "Translation stopped.",
+  }
+};
+
+function t() { return STRINGS[currentLang]; }
+
+function setLang(lang) {
+  currentLang = lang;
+  document.getElementById("btn-lang-ja").classList.toggle("active", lang === "ja");
+  document.getElementById("btn-lang-en").classList.toggle("active", lang === "en");
+  applyLang();
+}
+
+function applyLang() {
+  const s = t();
+  document.getElementById("label-path").textContent    = s.labelPath;
+  document.getElementById("xml-path").placeholder      = s.placeholder;
+  document.getElementById("label-filename").textContent = s.labelFilename;
+  document.getElementById("label-entries").textContent  = s.labelEntries;
+  document.getElementById("status-prefix").textContent  = s.statusPrefix;
+  document.getElementById("label-log").textContent      = s.labelLog;
+  document.getElementById("btn-start").textContent      = s.btnStart;
+  document.getElementById("btn-stop").textContent       = s.btnStop;
+}
+
+// ── Input Cleaner ─────────────────────────────────────────────────────────────
 function cleanInputPath(inputEl) {
   let p = inputEl.value;
   let cleaned = p.trim().replace(/^["']|["']$/g, "").replace(/"/g, "").replace(/'/g, "");
@@ -188,23 +303,22 @@ function cleanInputPath(inputEl) {
   }
 }
 
+// ── Init ──────────────────────────────────────────────────────────────────────
 document.addEventListener("DOMContentLoaded", () => {
+  applyLang();
   const pathInput = document.getElementById("xml-path");
-  
-  // パス入力監視
+
   let timer;
   pathInput.addEventListener("input", () => {
     clearTimeout(timer);
-    timer = setTimeout(() => {
-      checkXML();
-    }, 500);
+    timer = setTimeout(() => { checkXML(); }, 500);
   });
 
-  // 定期ステータス取得ループ
   setInterval(pollStatus, 800);
   pollStatus();
 });
 
+// ── Status polling ────────────────────────────────────────────────────────────
 function pollStatus() {
   fetch(BASE + "/api/status")
     .then(r => r.json())
@@ -213,9 +327,11 @@ function pollStatus() {
 }
 
 function updateUI(s) {
-  const display = document.getElementById("status-display");
-  const btnStart = document.getElementById("btn-start");
-  const btnStop = document.getElementById("btn-stop");
+  const display   = document.getElementById("status-display");
+  const msgEl     = document.getElementById("status-message");
+  const btnStart  = document.getElementById("btn-start");
+  const btnStop   = document.getElementById("btn-stop");
+  const lang      = t();
 
   let pct = 0;
   if (s.total > 0) {
@@ -223,33 +339,35 @@ function updateUI(s) {
   }
 
   if (s.status === "loading") {
-    display.textContent = `状態: ${s.message} (${s.progress}/${s.total} - ${pct}% | 残り ${s.eta || "--"})`;
+    msgEl.textContent = lang.statusLoading(s.message, pct, s.eta || "--");
     display.style.borderLeftColor = "#f1c40f";
     btnStart.disabled = true;
     btnStop.disabled = false;
   } else if (s.status === "translating") {
-    display.textContent = `状態: ${s.message} (${s.progress}/${s.total} - ${pct}% | 残り ${s.eta || "--"})`;
+    msgEl.textContent = lang.statusTranslating(s.message, pct, s.eta || "--");
     display.style.borderLeftColor = "#3498db";
     btnStart.disabled = true;
     btnStop.disabled = false;
   } else if (s.status === "done") {
-    display.textContent = `状態: ${s.message}`;
+    msgEl.textContent = lang.statusDone(s.message);
     display.style.borderLeftColor = "#2ecc71";
     btnStart.disabled = !xmlReady;
     btnStop.disabled = true;
   } else {
-    display.textContent = `状態: ${s.message}`;
-    display.style.borderLeftColor = "#e74c3c";
+    // idle or error
+    msgEl.textContent = lang.statusIdle(s.message);
+    display.style.borderLeftColor = "#555";
     btnStart.disabled = !xmlReady;
     btnStop.disabled = true;
   }
 }
 
+// ── XML Check ─────────────────────────────────────────────────────────────────
 function checkXML() {
   const pathInput = document.getElementById("xml-path");
   const rawPath = pathInput.value.trim();
   const path = rawPath.replace(/^["']|["']$/g, "").replace(/"/g, "").replace(/'/g, "");
-  
+
   if (!path) {
     document.getElementById("file-name").textContent = "-";
     document.getElementById("entry-count").textContent = "-";
@@ -270,23 +388,24 @@ function checkXML() {
       const fname = path.split('\\').pop().split('/').pop();
       document.getElementById("file-name").textContent = fname;
       document.getElementById("entry-count").textContent = d.count;
-      appendLog("XML確認OK: " + d.count + " エントリー (" + fname + ")");
+      appendLog(t().xmlOk(d.count, fname));
     } else {
       xmlReady = false;
-      document.getElementById("entry-count").textContent = "エラー";
-      appendLog("ERROR: " + d.error);
+      document.getElementById("entry-count").textContent = "ERROR";
+      appendLog(t().xmlError(d.error));
     }
   })
-  .catch(e => { appendLog("ERROR: " + e); });
+  .catch(e => { appendLog(t().xmlError(e)); });
 }
 
+// ── Actions ───────────────────────────────────────────────────────────────────
 function startTranslation() {
   const pathInput = document.getElementById("xml-path");
   const path = pathInput.value.trim().replace(/^["']|["']$/g, "").replace(/"/g, "").replace(/'/g, "");
-  if (!path) { appendLog("XMLパスを指定してください"); return; }
+  if (!path) { appendLog(t().needPath); return; }
 
   document.getElementById("btn-start").disabled = true;
-  appendLog("翻訳ジョブを送信しました: " + path);
+  appendLog(t().jobSent(path));
 
   fetch(BASE + "/api/translate", {
     method: "POST",
@@ -295,17 +414,18 @@ function startTranslation() {
   })
   .then(r => r.json())
   .then(d => {
-    if (!d.ok) appendLog("ERROR: " + d.error);
+    if (!d.ok) appendLog(t().xmlError(d.error));
   })
-  .catch(e => appendLog("ERROR: " + e));
+  .catch(e => appendLog(t().xmlError(e)));
 }
 
 function stopTranslation() {
   fetch(BASE + "/api/stop", { method: "POST" })
     .then(r => r.json())
-    .then(d => { if (d.ok) appendLog("翻訳を強制停止しました。"); });
+    .then(d => { if (d.ok) appendLog(t().stopped); });
 }
 
+// ── Log ───────────────────────────────────────────────────────────────────────
 function appendLog(text) {
   const log = document.getElementById("log");
   const ts = new Date().toLocaleTimeString();
