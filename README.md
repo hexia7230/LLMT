@@ -1,7 +1,7 @@
 # LLM-Translator
 
-A local, offline-capable Skyrim SST XML translation tool powered by **Meta Llama 3.2 3B Instruct**.
-Translates English game text strings into Japanese using a locally-running language model — no cloud API or internet connection required after the initial model download.
+A local, offline-capable SST XML translation tool powered by **Meta Llama 3.2 3B Instruct**.
+Translates English text strings into Japanese using a locally-running language model — no cloud API or internet connection required after the initial model download.
 
 ---
 
@@ -56,9 +56,10 @@ The interface supports English and Japanese. Use the **JA / EN** toggle button i
 
 - **The XML file is overwritten in place.** Always back up your file before starting a translation job.
 - Already-translated entries (Dest field contains Japanese text) are skipped automatically.
-- Well-known Skyrim proper nouns (locations, factions, skills, deities, etc.) are substituted from a built-in vocabulary table without invoking the model, which speeds up processing.
+- Well-known game/domain proper nouns (locations, factions, skills, titles, etc.) are substituted from a built-in vocabulary table without invoking the model, which speeds up processing.
 - Entries that contain no translatable English words (pure numbers, symbols, template variables) are passed through unchanged.
-- Placeholder tokens such as `{{BASH:…}}`, `[PlayerName]`, `<Alias=…>`, `%s`, `%d`, and `\n` are preserved exactly as-is.
+- Placeholder tokens such as `{{BASH:…}}`, `[PlayerName]`, `<Alias=…>`, `%s`, `%d`, and `
+` are preserved exactly as-is.
 
 ---
 
