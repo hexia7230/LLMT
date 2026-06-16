@@ -1,5 +1,5 @@
 @echo off
-title LLMT Orchestrator
+title LLMT Orchestrator — Coder Execution
 cd /d "%~dp0"
 
 if not exist venv\Scripts\activate.bat (
@@ -8,11 +8,11 @@ if not exist venv\Scripts\activate.bat (
     exit /b 1
 )
 
-echo Starting LLMT Orchestrator...
-echo ブラウザが自動で開きます。このウィンドウを閉じると停止します。
+echo Starting LLMT Coder (Phase 4)...
+echo prompt_dump.json を読み込んでコード生成を実行します。
 echo.
 
 call venv\Scripts\activate
-python orchestrator.py
+python coder.py
 
 pause

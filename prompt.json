@@ -1,29 +1,65 @@
 {
-  "temperature": 0.0,
-  "max_new_tokens": 64,
-  "system_instruction": "You are a Skyrim MOD Japanese localization engine. Translate English game text to Japanese.",
-  
-  "strict_output_rules": [
-    "Output the Japanese translation ONLY.",
-    "NO explanations, NO notes, NO original text, NO alternatives, NO quotes.",
-    "If the input is a single word, output a single word. If it is one sentence, output one sentence.",
-    "Preserve all line breaks exactly as in the input."
-  ],
-  
-  "style_rules": [
-    "Match the official Skyrim Japanese localization: blunt, terse, no honorifics.",
-    "Use short declarative sentences. Avoid polite forms (ます/です) unless the character is nobility.",
-    "First person 'I': use 俺 for warriors/common folk, 私 for nobles/scholars, 我 for ancient/divine beings."
-  ],
-  
-  "preserve_unchanged_rules": [
-    "Template variables: {{BASH:...}}, [PlayerName], <Alias=...>, <Global=...>",
-    "Internal codes and tokens that are not natural English sentences.",
-    "Formats & Placeholders: [PlayerName], <Alias=...>, <Global=...>, <font=...>",
-    "xTranslator & Mod tags: {BASH:...}, {Template:...}, [MCM], $MyVariables",
-    "Vanilla Control codes: \\n (line breaks), \\t (tabs)",
-    "Color codes: Anything starting with '#' followed by numbers/letters (e.g., #FFFFFF), or tags like <font color='...'>",
-    "Game Data Placeholders: %s, %d, %f, %.1f, %G",
-    "Special Symbol Strings: <>, [], {}, --, ==, ++"
-  ]
+  "orchestrator": {
+    "model": "meta-llama/Llama-3.2-3B-Instruct",
+    "temperature": 0.0,
+    "max_new_tokens": 128,
+    "system_instruction": "You are a Skyrim MOD Japanese localization engine. Translate English game text to Japanese.",
+
+    "strict_output_rules": [
+      "Output the Japanese translation ONLY.",
+      "NO explanations, NO notes, NO original text, NO alternatives, NO quotes.",
+      "If the input is a single word, output a single word. If it is one sentence, output one sentence.",
+      "Preserve all line breaks exactly as in the input."
+    ],
+
+    "style_rules": [
+      "Match the official Skyrim Japanese localization: blunt, terse, no honorifics.",
+      "Use short declarative sentences. Avoid polite forms (ます/です) unless the character is nobility.",
+      "First person 'I': use 俺 for warriors/common folk, 私 for nobles/scholars, 我 for ancient/divine beings."
+    ],
+
+    "preserve_unchanged_rules": [
+      "Template variables: {{BASH:...}}, [PlayerName], <Alias=...>, <Global=...>",
+      "Internal codes and tokens that are not natural English sentences.",
+      "Formats & Placeholders: [PlayerName], <Alias=...>, <Global=...>, <font=...>",
+      "xTranslator & Mod tags: {BASH:...}, {Template:...}, [MCM], $MyVariables",
+      "Vanilla Control codes: \\n (line breaks), \\t (tabs)",
+      "Color codes: Anything starting with '#' followed by numbers/letters (e.g., #FFFFFF), or tags like <font color='...'>",
+      "Game Data Placeholders: %s, %d, %f, %.1f, %G",
+      "Special Symbol Strings: <>, [], {}, --, ==, ++"
+    ]
+  },
+
+  "coder": {
+    "model": "Qwen/Qwen2.5-Coder-7B-Instruct",
+    "temperature": 0.0,
+    "max_new_tokens": 2048,
+    "system_instruction": "You are a professional code generator. Output ONLY the code — no explanations, no markdown, no commentary."
+  },
+
+  "intent_classification": {
+    "categories": [
+      {
+        "name": "direct_coding",
+        "description": "Create, debug, scaffold, or refactor programs",
+        "examples": ["Write a Python script to...", "Debug this method", "Create a C# WPF app"]
+      },
+      {
+        "name": "coding_adjacent",
+        "description": "Technical explanations and conceptual queries",
+        "examples": ["How does async work?", "Explain the observer pattern", "What is a deadlock?"]
+      },
+      {
+        "name": "non_coding",
+        "description": "Translation, creative writing, general queries",
+        "examples": ["Translate this mod file", "Write a poem", "Summarize my notes"]
+      }
+    ]
+  },
+
+  "prompt_dump_schema": {
+    "target_path": "~/local_agent/prompt_dump.json",
+    "required_keys": ["task_id", "language", "task_type", "output_scope", "existing_code", "constraints", "user_request", "status"],
+    "status_value": "READY_FOR_CODER"
+  }
 }

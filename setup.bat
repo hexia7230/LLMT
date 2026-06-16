@@ -1,9 +1,9 @@
 @echo off
-title LLM-Translator Setup
+title LLMT Orchestrator Setup
 cd /d "%~dp0"
 
 echo ============================================================
-echo  LLM-Translator Environment Setup
+echo  LLMT Orchestrator Environment Setup
 echo ============================================================
 echo.
 
@@ -43,6 +43,7 @@ if errorlevel 1 (
 echo.
 echo ============================================================
 echo  Setup completed successfully.
-echo  Please execute run.bat to start the server.
+echo  Please execute run.bat to start the orchestrator.
+echo  Execute run_coder.bat to run the coder (Phase 4).
 echo ============================================================
 pause
