@@ -168,7 +168,12 @@ def _needs_llm(src: str) -> bool:
 def _is_japanese(text: str) -> bool:
     if not text:
         return False
-    cjk = sum(1 for c in text if "\u3000" <= c <= "\u9fff" or "\uf900" <= c <= "\ufaff")
+    # Bug7 fix: ひらがな(\u3040-\u309f)・カタカナ(\u30a0-\u30ff)を追加
+    cjk = sum(1 for c in text if
+              "\u3000" <= c <= "\u9fff" or
+              "\uf900" <= c <= "\ufaff" or
+              "\u3040" <= c <= "\u309f" or
+              "\u30a0" <= c <= "\u30ff")
     return cjk / max(len(text), 1) > 0.30
 
 
@@ -321,9 +326,11 @@ def _translate_worker(xml_path: str):
         _log(f"[worker] {total} entries to translate")
 
         start = time.time()
+        stopped = False  # Bug4 fix: 中断フラグ
         for idx, (src, dn) in enumerate(work):
             if stop_event.is_set():
                 _log("[worker] Stopped.")
+                stopped = True
                 break
             dn.text = _translate_one(src)
             done    = idx + 1
@@ -338,10 +345,14 @@ def _translate_worker(xml_path: str):
                 _log(f"[worker] {done}/{total} ({done*100//total}%) | {src[:50]!r}")
                 gc.collect()
 
-        ET.indent(tree, space="  ")
-        tree.write(xml_path, encoding="UTF-8", xml_declaration=True)
-        _log(f"[worker] Saved -> {xml_path}")
-        _set(status="done", message=f"完了: {total} 件翻訳")
+        # Bug4 fix: 中断された場合はファイルを保存しない（破損XMLの上書きを防ぐ）
+        if not stopped:
+            ET.indent(tree, space="  ")
+            tree.write(xml_path, encoding="UTF-8", xml_declaration=True)
+            _log(f"[worker] Saved -> {xml_path}")
+            _set(status="done", message=f"完了: {total} 件翻訳")
+        else:
+            _set(status="idle", message="翻訳を中断しました（ファイルは変更されていません）")
 
     except Exception as e:
         _log(f"[worker ERROR] {e}")
@@ -380,7 +391,10 @@ def api_xml_info():
 
 @app.route("/api/translate", methods=["POST"])
 def api_translate():
-    if state["status"] in ("translating", "loading"):
+    # Bug1 fix: state_lock を取得してからスレッドセーフに状態を読む
+    with state_lock:
+        current_status = state["status"]
+    if current_status in ("translating", "loading"):
         return jsonify({"ok": False, "error": "既に実行中"})
     xml_path = (request.json or {}).get("xml_path", "").replace('"', "").strip()
     if not xml_path or not os.path.exists(xml_path):
@@ -395,6 +409,9 @@ def api_stop():
     return jsonify({"ok": True})
 
 if __name__ == "__main__":
+    # Bug8 note: orchestrator.py も同じポート 7331 を使用しているため、
+    # 両スクリプトを同時に起動するとバインドエラーになります。
+    # translator.py は orchestrator.py のサブセット用のスタンドアロン版です。
     port = 7331
     print(f"[LLM-Translator] http://localhost:{port}/", flush=True)
     threading.Timer(1.5, lambda: webbrowser.open(f"http://localhost:{port}/")).start()

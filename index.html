@@ -3,17 +3,16 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="description" content="LLMT Orchestrator — Multi-phase local agent pipeline for code generation and Skyrim MOD translation.">
+<meta name="description" content="LLMT Orchestrator — AI-driven Skyrim MOD XML localization pipeline with natural language interface.">
 <title>LLMT Orchestrator</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
 /* ═══════════════════════════════════════════════════════════════════════
-   DESIGN SYSTEM — LLMT Orchestrator v2.0
+   DESIGN SYSTEM — LLMT Orchestrator v3.0
    ═══════════════════════════════════════════════════════════════════════ */
 :root {
-  /* Palette */
   --bg-root:     #0a0e17;
   --bg-surface:  #111827;
   --bg-elevated: #1a2236;
@@ -30,18 +29,14 @@
   --accent-amber:#f59e0b;
   --accent-red:  #ef4444;
   --accent-purple:#a855f7;
-  /* Phase colors */
   --phase1-color:#f59e0b;
   --phase2-color:#3b82f6;
   --phase3-color:#22c55e;
   --translating-color:#06b6d4;
-  /* Glow */
   --glow-blue:   0 0 20px rgba(59,130,246,0.15);
   --glow-green:  0 0 20px rgba(34,197,94,0.15);
   --glow-amber:  0 0 20px rgba(245,158,11,0.15);
-  /* Transitions */
   --transition:  0.2s cubic-bezier(0.4, 0, 0.2, 1);
-  /* Typography */
   --font-sans:   'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
   --font-mono:   'JetBrains Mono', 'Consolas', monospace;
 }
@@ -61,7 +56,6 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-/* Subtle animated background grid */
 body::before {
   content: '';
   position: fixed;
@@ -80,7 +74,7 @@ body::before {
   max-width: 100%;
 }
 
-/* ── Header ────────────────────────────────────────────────────────────── */
+/* ── Header ─────────────────────────────────────────────────────────── */
 .header-row {
   display: flex;
   align-items: center;
@@ -109,7 +103,7 @@ h1 .version-badge {
   letter-spacing: 1px;
 }
 
-/* ── Language Toggle ───────────────────────────────────────────────────── */
+/* ── Language Toggle ────────────────────────────────────────────────── */
 #lang-toggle {
   display: flex;
   border: 1px solid var(--border);
@@ -139,7 +133,7 @@ h1 .version-badge {
   color: var(--text-secondary);
 }
 
-/* ── Sections ──────────────────────────────────────────────────────────── */
+/* ── Sections ───────────────────────────────────────────────────────── */
 .section { margin-bottom: 16px; }
 
 label {
@@ -152,41 +146,7 @@ label {
   letter-spacing: 1.5px;
 }
 
-/* ── Mode Tabs ─────────────────────────────────────────────────────────── */
-.mode-tabs {
-  display: flex;
-  gap: 2px;
-  background: var(--bg-surface);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  padding: 3px;
-  margin-bottom: 16px;
-}
-.mode-tab {
-  flex: 1;
-  padding: 10px 8px;
-  font-size: 12px;
-  font-weight: 600;
-  font-family: var(--font-sans);
-  cursor: pointer;
-  border: none;
-  border-radius: 8px;
-  background: transparent;
-  color: var(--text-muted);
-  letter-spacing: 0.5px;
-  transition: all var(--transition);
-}
-.mode-tab.active {
-  background: var(--accent-blue);
-  color: #fff;
-  box-shadow: var(--glow-blue);
-}
-.mode-tab:not(.active):hover {
-  background: var(--bg-elevated);
-  color: var(--text-secondary);
-}
-
-/* ── Inputs ────────────────────────────────────────────────────────────── */
+/* ── Inputs ─────────────────────────────────────────────────────────── */
 textarea.task-input,
 input[type="text"] {
   width: 100%;
@@ -213,7 +173,7 @@ input[type="text"]::placeholder {
   font-style: italic;
 }
 
-/* ── Info Grid ─────────────────────────────────────────────────────────── */
+/* ── Info Grid ──────────────────────────────────────────────────────── */
 .grid-info {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -243,7 +203,7 @@ input[type="text"]::placeholder {
   color: var(--accent-cyan);
 }
 
-/* ── Status Box ────────────────────────────────────────────────────────── */
+/* ── Status Box ─────────────────────────────────────────────────────── */
 .status-box {
   background: var(--bg-surface);
   border: 1px solid var(--border);
@@ -271,7 +231,7 @@ input[type="text"]::placeholder {
 .status-box.phase2 { border-left-color: var(--phase2-color); box-shadow: var(--glow-blue); }
 .status-box.phase2 .status-dot { background: var(--phase2-color); animation: pulse 1.5s infinite; }
 .status-box.phase3 { border-left-color: var(--phase3-color); box-shadow: var(--glow-green); }
-.status-box.phase3 .status-dot { background: var(--phase3-color); }
+.status-box.phase3 .status-dot { background: var(--phase3-color); animation: pulse 1.5s infinite; }
 .status-box.translating { border-left-color: var(--translating-color); }
 .status-box.translating .status-dot { background: var(--translating-color); animation: pulse 1.5s infinite; }
 .status-box.done { border-left-color: var(--accent-green); }
@@ -284,7 +244,7 @@ input[type="text"]::placeholder {
   50% { opacity: 0.4; }
 }
 
-/* ── Context Panel (Phase 2 Chat) ──────────────────────────────────────── */
+/* ── Context Panel (Phase 2 Dialog) ────────────────────────────────── */
 .context-panel {
   background: var(--bg-surface);
   border: 1px solid var(--border);
@@ -326,7 +286,7 @@ input[type="text"]::placeholder {
 }
 @keyframes fadeSlideUp {
   from { opacity: 0; transform: translateY(8px); }
-  to { opacity: 1; transform: translateY(0); }
+  to   { opacity: 1; transform: translateY(0); }
 }
 .chat-bubble.system {
   background: var(--bg-elevated);
@@ -396,37 +356,8 @@ input[type="text"]::placeholder {
 }
 .context-free-input button:hover { background: var(--accent-blue-hover); }
 
-/* ── Summary Card ──────────────────────────────────────────────────────── */
-.summary-card {
-  background: var(--bg-surface);
-  border: 1px solid rgba(34,197,94,0.2);
-  border-radius: 10px;
-  padding: 16px 20px;
-  margin-bottom: 16px;
-  display: none;
-}
-.summary-card.visible { display: block; }
-.summary-card h3 {
-  font-size: 12px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 1.5px;
-  color: var(--accent-green);
-  margin-bottom: 12px;
-}
-.summary-row {
-  display: flex;
-  justify-content: space-between;
-  padding: 6px 0;
-  font-size: 13px;
-  border-bottom: 1px solid var(--border);
-}
-.summary-row:last-child { border-bottom: none; }
-.summary-key { color: var(--text-secondary); }
-.summary-value { color: var(--text-primary); font-weight: 500; font-family: var(--font-mono); }
-
-/* ── Prompt Dump Result ────────────────────────────────────────────────── */
-.dump-result {
+/* ── Dump Ready Card (Phase 3 summary) ─────────────────────────────── */
+.dump-card {
   background: var(--bg-surface);
   border: 1px solid rgba(34,197,94,0.25);
   border-radius: 10px;
@@ -434,8 +365,8 @@ input[type="text"]::placeholder {
   overflow: hidden;
   display: none;
 }
-.dump-result.visible { display: block; animation: fadeSlideUp 0.3s ease-out; }
-.dump-result-header {
+.dump-card.visible { display: block; animation: fadeSlideUp 0.3s ease-out; }
+.dump-card-header {
   background: rgba(34,197,94,0.08);
   padding: 12px 18px;
   font-size: 11px;
@@ -444,18 +375,26 @@ input[type="text"]::placeholder {
   letter-spacing: 1.5px;
   color: var(--accent-green);
   border-bottom: 1px solid rgba(34,197,94,0.15);
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
-.dump-result pre {
-  padding: 16px;
-  font-family: var(--font-mono);
-  font-size: 12px;
-  color: var(--accent-cyan);
-  line-height: 1.6;
-  overflow-x: auto;
-  white-space: pre-wrap;
+.dump-card-body {
+  padding: 14px 18px;
 }
+.dump-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 0;
+  font-size: 13px;
+  border-bottom: 1px solid var(--border);
+}
+.dump-row:last-child { border-bottom: none; }
+.dump-key   { color: var(--text-secondary); }
+.dump-value { color: var(--accent-cyan); font-family: var(--font-mono); font-size: 12px; font-weight: 500; max-width: 60%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: right; }
 
-/* ── Buttons ───────────────────────────────────────────────────────────── */
+/* ── Buttons ────────────────────────────────────────────────────────── */
 .actions {
   display: flex;
   gap: 10px;
@@ -487,8 +426,18 @@ button.action-btn {
   background: var(--bg-elevated);
   color: var(--text-muted);
   cursor: not-allowed;
-  transform: none;
-  box-shadow: none;
+}
+
+#btn-start-translation {
+  background: linear-gradient(135deg, var(--accent-green) 0%, #16a34a 100%);
+  color: #fff;
+  flex: 1;
+  display: none;
+}
+#btn-start-translation.visible { display: block; }
+#btn-start-translation:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 16px rgba(34,197,94,0.3);
 }
 
 #btn-stop {
@@ -515,43 +464,7 @@ button.action-btn {
   border-color: var(--text-muted);
 }
 
-#btn-finalize {
-  background: linear-gradient(135deg, var(--accent-green) 0%, #16a34a 100%);
-  color: #fff;
-  flex: 1;
-  display: none;
-}
-#btn-finalize.visible { display: block; }
-#btn-finalize:hover:not(:disabled) {
-  transform: translateY(-1px);
-  box-shadow: 0 4px 16px rgba(34,197,94,0.3);
-}
-
-/* ── Translation Mode Section ──────────────────────────────────────────── */
-.translate-section {
-  display: none;
-  margin-bottom: 16px;
-}
-.translate-section.visible { display: block; }
-
-/* ── Log ───────────────────────────────────────────────────────────────── */
-.log-container { width: 100%; }
-.log-container textarea {
-  width: 100%;
-  height: 200px;
-  background: var(--bg-input);
-  border: 1px solid var(--border);
-  color: #6ee7b7;
-  font-family: var(--font-mono);
-  font-size: 11px;
-  padding: 14px;
-  resize: vertical;
-  outline: none;
-  border-radius: 10px;
-  line-height: 1.6;
-}
-
-/* ── Progress Bar ──────────────────────────────────────────────────────── */
+/* ── Progress Bar ───────────────────────────────────────────────────── */
 .progress-bar-container {
   width: 100%;
   height: 4px;
@@ -570,11 +483,28 @@ button.action-btn {
   transition: width 0.4s ease;
 }
 
-/* ── Responsive ────────────────────────────────────────────────────────── */
+/* ── Log ────────────────────────────────────────────────────────────── */
+.log-container { width: 100%; }
+.log-container textarea {
+  width: 100%;
+  height: 200px;
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  color: #6ee7b7;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  padding: 14px;
+  resize: vertical;
+  outline: none;
+  border-radius: 10px;
+  line-height: 1.6;
+}
+
+/* ── Responsive ─────────────────────────────────────────────────────── */
 @media (max-width: 680px) {
   #app { width: 100%; }
-  .mode-tabs { flex-direction: column; }
   .context-options { flex-direction: column; }
+  .actions { flex-wrap: wrap; }
 }
 </style>
 </head>
@@ -583,110 +513,71 @@ button.action-btn {
 <div id="app">
   <!-- Header -->
   <div class="header-row">
-    <h1>LLMT ORCHESTRATOR <span class="version-badge">v2.0</span></h1>
+    <h1>LLMT ORCHESTRATOR <span class="version-badge">v3.0</span></h1>
     <div id="lang-toggle">
       <button id="btn-lang-ja" class="active" onclick="setLang('ja')">JA</button>
       <button id="btn-lang-en" onclick="setLang('en')">EN</button>
     </div>
   </div>
 
-  <!-- Mode Tabs -->
-  <div class="mode-tabs" id="mode-tabs">
-    <button class="mode-tab active" id="tab-orchestrator" onclick="setMode('orchestrator')">
-      <span id="tab-orch-label">オーケストレーター</span>
-    </button>
-    <button class="mode-tab" id="tab-translate" onclick="setMode('translate')">
-      <span id="tab-trans-label">XML翻訳</span>
-    </button>
+  <!-- Task Input -->
+  <div class="section">
+    <label id="label-task">タスク入力</label>
+    <textarea class="task-input" id="task-input"
+      placeholder="例：C:\path\to\file.xml を翻訳して" rows="3"></textarea>
   </div>
 
-  <!-- ═══ ORCHESTRATOR MODE ═══ -->
-  <div id="orchestrator-mode">
-    <div class="section">
-      <label id="label-task">タスク入力</label>
-      <textarea class="task-input" id="task-input" placeholder="例：Pythonでソートアルゴリズムを書いて…" rows="3"></textarea>
+  <!-- WordWall Info -->
+  <div class="grid-info">
+    <div class="info-card">
+      <div class="info-label" id="label-ww-files">WordWall 参照ファイル</div>
+      <div id="ww-file-count" class="info-val">-</div>
     </div>
-
-    <!-- Info Grid: WordWall -->
-    <div class="grid-info">
-      <div class="info-card">
-        <div class="info-label" id="label-ww-files">WordWall 参照ファイル</div>
-        <div id="ww-file-count" class="info-val">-</div>
-      </div>
-      <div class="info-card">
-        <div class="info-label" id="label-ww-terms">参照語数</div>
-        <div id="ww-term-count" class="info-val">-</div>
-      </div>
-    </div>
-
-    <!-- Status -->
-    <div id="status-display" class="status-box">
-      <div class="status-dot"></div>
-      <span id="status-prefix">状態:</span>&nbsp;<span id="status-message">待機中</span>
-    </div>
-
-    <!-- Progress Bar -->
-    <div class="progress-bar-container" id="progress-container">
-      <div class="progress-bar" id="progress-bar"></div>
-    </div>
-
-    <!-- Context Panel (Phase 2 Chat) -->
-    <div class="context-panel" id="context-panel">
-      <div class="context-panel-header">
-        <span id="context-header-text">コンテキスト収集</span>
-        <span class="step-indicator" id="step-indicator"></span>
-      </div>
-      <div class="context-chat" id="context-chat"></div>
-      <div class="context-options" id="context-options"></div>
-      <div class="context-free-input" id="context-free-input" style="display:none;">
-        <input type="text" id="free-input" placeholder="入力してください...">
-        <button onclick="submitFreeInput()">送信</button>
-      </div>
-    </div>
-
-    <!-- Summary Card (after Phase 2) -->
-    <div class="summary-card" id="summary-card">
-      <h3 id="summary-title">セッションサマリー</h3>
-      <div id="summary-body"></div>
-    </div>
-
-    <!-- Prompt Dump Result -->
-    <div class="dump-result" id="dump-result">
-      <div class="dump-result-header" id="dump-header">PROMPT DUMP — ~/local_agent/prompt_dump.json</div>
-      <pre id="dump-content"></pre>
-    </div>
-
-    <!-- Actions -->
-    <div class="actions">
-      <button class="action-btn" id="btn-submit" onclick="submitTask()">送信</button>
-      <button class="action-btn" id="btn-finalize" onclick="finalizeTask()">ダンプ生成</button>
-      <button class="action-btn" id="btn-stop" onclick="stopTask()" disabled>停止</button>
-      <button class="action-btn" id="btn-reset" onclick="resetSession()">リセット</button>
+    <div class="info-card">
+      <div class="info-label" id="label-ww-terms">参照語数</div>
+      <div id="ww-term-count" class="info-val">-</div>
     </div>
   </div>
 
-  <!-- ═══ TRANSLATION MODE ═══ -->
-  <div id="translate-mode" class="translate-section">
-    <div class="section">
-      <label id="label-path">SST XML ファイルパス</label>
-      <input type="text" id="xml-path" placeholder="C:\path\to\your\file.xml" oninput="cleanInputPath(this)" onblur="cleanInputPath(this)">
-    </div>
+  <!-- Status -->
+  <div id="status-display" class="status-box">
+    <div class="status-dot"></div>
+    <span id="status-prefix">状態:</span>&nbsp;<span id="status-message">待機中</span>
+  </div>
 
-    <div class="grid-info">
-      <div class="info-card">
-        <div class="info-label" id="label-filename">ファイル名</div>
-        <div id="file-name" class="info-val" style="font-size:14px;">-</div>
-      </div>
-      <div class="info-card">
-        <div class="info-label" id="label-entries">対象文字列数</div>
-        <div id="entry-count" class="info-val">-</div>
-      </div>
-    </div>
+  <!-- Progress Bar -->
+  <div class="progress-bar-container" id="progress-container">
+    <div class="progress-bar" id="progress-bar"></div>
+  </div>
 
-    <div class="actions">
-      <button class="action-btn" id="btn-start" onclick="startTranslation()" disabled style="background:var(--accent-blue);color:#fff;">開始</button>
-      <button class="action-btn" id="btn-stop-translate" onclick="stopTranslation()" disabled style="background:var(--accent-red);color:#fff;flex:0.5;">停止</button>
+  <!-- Context Panel (Phase 2 Dialog) -->
+  <div class="context-panel" id="context-panel">
+    <div class="context-panel-header">
+      <span id="context-header-text">翻訳設定</span>
+      <span class="step-indicator" id="step-indicator"></span>
     </div>
+    <div class="context-chat" id="context-chat"></div>
+    <div class="context-options" id="context-options"></div>
+    <div class="context-free-input" id="context-free-input" style="display:none;">
+      <input type="text" id="free-input" placeholder="入力してください...">
+      <button onclick="submitFreeInput()" id="btn-free-send">送信</button>
+    </div>
+  </div>
+
+  <!-- Dump Ready Card (Phase 3) -->
+  <div class="dump-card" id="dump-card">
+    <div class="dump-card-header">
+      <span>✓ DUMP_READY — translation_dump.json</span>
+    </div>
+    <div class="dump-card-body" id="dump-card-body"></div>
+  </div>
+
+  <!-- Actions -->
+  <div class="actions">
+    <button class="action-btn" id="btn-submit" onclick="submitTask()">送信</button>
+    <button class="action-btn" id="btn-start-translation" onclick="startFromDump()">翻訳開始</button>
+    <button class="action-btn" id="btn-stop" onclick="stopTask()" disabled>停止</button>
+    <button class="action-btn" id="btn-reset" onclick="resetSession()">リセット</button>
   </div>
 
   <!-- Log Console -->
@@ -699,96 +590,70 @@ button.action-btn {
 <script>
 const BASE = window.location.origin;
 let currentLang = "ja";
-let currentMode = "orchestrator";
-let xmlReady = false;
-let currentPath = "";
-let isSessionActive = false;
 
 // ══════════════════════════════════════════════════════════════════════════════
 //  LOCALIZATION
 // ══════════════════════════════════════════════════════════════════════════════
 const STRINGS = {
   ja: {
-    tabOrch:        "オーケストレーター",
-    tabTrans:       "XML翻訳",
-    labelTask:      "タスク入力",
-    taskPlaceholder:"例：Pythonでソートアルゴリズムを書いて…",
-    labelWwFiles:   "WordWall 参照ファイル",
-    labelWwTerms:   "参照語数",
-    statusPrefix:   "状態:",
-    labelLog:       "コンソールログ",
-    btnSubmit:      "送信",
-    btnFinalize:    "ダンプ生成",
-    btnStop:        "停止",
-    btnReset:       "リセット",
-    btnStart:       "開始",
-    idle:           "待機中",
-    contextHeader:  "コンテキスト収集",
-    summaryTitle:   "セッションサマリー",
-    // Translation mode
-    labelPath:      "SST XML ファイルパス",
-    placeholder:    "C:\\path\\to\\your\\file.xml",
-    labelFilename:  "ファイル名",
-    labelEntries:   "対象文字列数",
-    // Status messages
-    phase1:         (intent) => `[Phase 1] インテント分析: ${intent}`,
-    phase2:         "コンテキスト収集中...",
-    phase3:         "プロンプトダンプ準備完了",
-    translating:    (msg, pct, eta) => `${msg} (${pct}% | 残り ${eta})`,
-    done:           (msg) => msg,
-    xmlOk:          (count, fname) => `XML 確認 OK: ${count} エントリー (${fname})`,
-    xmlError:       (err) => `ERROR: ${err}`,
-    jobSent:        (path) => `翻訳ジョブを送信しました: ${path}`,
-    needPrompt:     "プロンプトを入力してください",
-    needPath:       "XML パスを指定してください",
-    stopped:        "停止しました。",
-    resetDone:      "セッションをリセットしました。",
-    dumpDone:       (path) => `プロンプトダンプを保存しました: ${path}`,
-    intentDirect:   "ダイレクトコーディング",
-    intentAdjacent: "コーディング関連",
-    intentNonCoding:"非コーディング",
-    sendLabel:      "送信",
-    inputPlaceholder:"入力してください...",
+    labelTask:       "タスク入力",
+    taskPlaceholder: "例：C:\\path\\to\\file.xml を翻訳して",
+    labelWwFiles:    "WordWall 参照ファイル",
+    labelWwTerms:    "参照語数",
+    statusPrefix:    "状態:",
+    labelLog:        "コンソールログ",
+    btnSubmit:       "送信",
+    btnStartTrans:   "翻訳開始",
+    btnStop:         "停止",
+    btnReset:        "リセット",
+    contextHeader:   "翻訳設定",
+    sendLabel:       "送信",
+    inputPlaceholder:"ファイルパスを入力してください...",
+    idle:            "待機中",
+    phase1:          (intent) => `[Phase 1] Intent: ${intent}`,
+    phase2:          "翻訳設定を収集中...",
+    phase3:          "DUMP_READY — 翻訳設定完了",
+    translating:     (msg, pct, eta) => `${msg} (${pct}% | 残り ${eta})`,
+    done:            (msg) => msg,
+    needPrompt:      "翻訳タスクを入力してください（例：C:\\path\\to\\file.xml を翻訳して）",
+    stopped:         "停止しました。",
+    resetDone:       "セッションをリセットしました。",
+    intentTranslate: "翻訳",
+    intentQuery:     "クエリ",
+    xmlDetected:     (p) => `[Phase 1] XMLパス検出: ${p}`,
+    dumpReady:       "DUMP_READY — 翻訳ダンプを生成しました",
+    startJob:        (p) => `翻訳ジョブを開始しました: ${p}`,
+    styleLabel:      { game: "ゲーム公式", formal: "フォーマル", casual: "カジュアル" },
   },
   en: {
-    tabOrch:        "Orchestrator",
-    tabTrans:       "XML Translate",
-    labelTask:      "Task Input",
-    taskPlaceholder:"e.g. Write a Python sorting algorithm...",
-    labelWwFiles:   "WordWall Reference Files",
-    labelWwTerms:   "Reference Terms",
-    statusPrefix:   "Status:",
-    labelLog:       "Console Log",
-    btnSubmit:      "Submit",
-    btnFinalize:    "Generate Dump",
-    btnStop:        "Stop",
-    btnReset:       "Reset",
-    btnStart:       "Start",
-    idle:           "Idle",
-    contextHeader:  "Context Gathering",
-    summaryTitle:   "Session Summary",
-    labelPath:      "SST XML File Path",
-    placeholder:    "C:\\path\\to\\your\\file.xml",
-    labelFilename:  "File Name",
-    labelEntries:   "Target Strings",
-    phase1:         (intent) => `[Phase 1] Intent Analysis: ${intent}`,
-    phase2:         "Gathering context...",
-    phase3:         "Prompt dump ready",
-    translating:    (msg, pct, eta) => `${msg} (${pct}% | ETA ${eta})`,
-    done:           (msg) => msg,
-    xmlOk:          (count, fname) => `XML OK: ${count} entries (${fname})`,
-    xmlError:       (err) => `ERROR: ${err}`,
-    jobSent:        (path) => `Translation job submitted: ${path}`,
-    needPrompt:     "Please enter a prompt",
-    needPath:       "Please specify an XML path",
-    stopped:        "Stopped.",
-    resetDone:      "Session reset.",
-    dumpDone:       (path) => `Prompt dump saved: ${path}`,
-    intentDirect:   "Direct Coding",
-    intentAdjacent: "Coding-Adjacent",
-    intentNonCoding:"Non-Coding",
-    sendLabel:      "Send",
-    inputPlaceholder:"Type your answer...",
+    labelTask:       "Task Input",
+    taskPlaceholder: "e.g. Translate C:\\path\\to\\file.xml",
+    labelWwFiles:    "WordWall Reference Files",
+    labelWwTerms:    "Reference Terms",
+    statusPrefix:    "Status:",
+    labelLog:        "Console Log",
+    btnSubmit:       "Submit",
+    btnStartTrans:   "Start Translation",
+    btnStop:         "Stop",
+    btnReset:        "Reset",
+    contextHeader:   "Translation Settings",
+    sendLabel:       "Send",
+    inputPlaceholder:"Enter file path...",
+    idle:            "Idle",
+    phase1:          (intent) => `[Phase 1] Intent: ${intent}`,
+    phase2:          "Gathering translation settings...",
+    phase3:          "DUMP_READY — settings complete",
+    translating:     (msg, pct, eta) => `${msg} (${pct}% | ETA ${eta})`,
+    done:            (msg) => msg,
+    needPrompt:      "Enter a translation task (e.g. Translate C:\\path\\to\\file.xml)",
+    stopped:         "Stopped.",
+    resetDone:       "Session reset.",
+    intentTranslate: "translate",
+    intentQuery:     "query",
+    xmlDetected:     (p) => `[Phase 1] XML path detected: ${p}`,
+    dumpReady:       "DUMP_READY — translation dump generated",
+    startJob:        (p) => `Translation job started: ${p}`,
+    styleLabel:      { game: "Game Official", formal: "Formal", casual: "Casual" },
   }
 };
 
@@ -803,8 +668,6 @@ function setLang(lang) {
 
 function applyLang() {
   const s = t();
-  document.getElementById("tab-orch-label").textContent   = s.tabOrch;
-  document.getElementById("tab-trans-label").textContent   = s.tabTrans;
   document.getElementById("label-task").textContent        = s.labelTask;
   document.getElementById("task-input").placeholder        = s.taskPlaceholder;
   document.getElementById("label-ww-files").textContent    = s.labelWwFiles;
@@ -812,38 +675,12 @@ function applyLang() {
   document.getElementById("status-prefix").textContent     = s.statusPrefix;
   document.getElementById("label-log").textContent         = s.labelLog;
   document.getElementById("btn-submit").textContent        = s.btnSubmit;
-  document.getElementById("btn-finalize").textContent      = s.btnFinalize;
+  document.getElementById("btn-start-translation").textContent = s.btnStartTrans;
   document.getElementById("btn-stop").textContent          = s.btnStop;
   document.getElementById("btn-reset").textContent         = s.btnReset;
-  document.getElementById("context-header-text").textContent = s.contextHeader;
-  document.getElementById("summary-title").textContent     = s.summaryTitle;
-  // Translation mode
-  document.getElementById("label-path").textContent        = s.labelPath;
-  document.getElementById("xml-path").placeholder          = s.placeholder;
-  document.getElementById("label-filename").textContent    = s.labelFilename;
-  document.getElementById("label-entries").textContent      = s.labelEntries;
-  document.getElementById("btn-start").textContent         = s.btnStart;
-  document.getElementById("btn-stop-translate").textContent = s.btnStop;
-}
-
-// ══════════════════════════════════════════════════════════════════════════════
-//  MODE SWITCHING
-// ══════════════════════════════════════════════════════════════════════════════
-function setMode(mode) {
-  currentMode = mode;
-  document.getElementById("tab-orchestrator").classList.toggle("active", mode === "orchestrator");
-  document.getElementById("tab-translate").classList.toggle("active", mode === "translate");
-  document.getElementById("orchestrator-mode").style.display = mode === "orchestrator" ? "block" : "none";
-  document.getElementById("translate-mode").classList.toggle("visible", mode === "translate");
-}
-
-// ══════════════════════════════════════════════════════════════════════════════
-//  INPUT HELPERS
-// ══════════════════════════════════════════════════════════════════════════════
-function cleanInputPath(inputEl) {
-  let p = inputEl.value;
-  let cleaned = p.trim().replace(/^["']|["']$/g, "").replace(/"/g, "").replace(/'/g, "");
-  if (p !== cleaned) inputEl.value = cleaned;
+  document.getElementById("context-header-text").textContent  = s.contextHeader;
+  document.getElementById("btn-free-send").textContent     = s.sendLabel;
+  document.getElementById("free-input").placeholder        = s.inputPlaceholder;
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
@@ -853,28 +690,14 @@ document.addEventListener("DOMContentLoaded", () => {
   applyLang();
   loadWordWallInfo();
 
-  // XML path debounce
-  const pathInput = document.getElementById("xml-path");
-  let timer;
-  pathInput.addEventListener("input", () => {
-    clearTimeout(timer);
-    timer = setTimeout(() => { checkXML(); }, 500);
-  });
-
-  // Enter key on task input
   document.getElementById("task-input").addEventListener("keydown", (e) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       submitTask();
     }
   });
-
-  // Enter key on free input
   document.getElementById("free-input").addEventListener("keydown", (e) => {
-    if (e.key === "Enter") {
-      e.preventDefault();
-      submitFreeInput();
-    }
+    if (e.key === "Enter") { e.preventDefault(); submitFreeInput(); }
   });
 
   setInterval(pollStatus, 800);
@@ -891,9 +714,7 @@ function loadWordWallInfo() {
       if (d.ok) {
         document.getElementById("ww-file-count").textContent = d.file_count;
         document.getElementById("ww-term-count").textContent = d.vocab_terms.toLocaleString();
-        d.files.forEach(f => {
-          appendLog(`[WordWall] ${f.filename} (${f.entry_count} entries)`);
-        });
+        d.files.forEach(f => appendLog(`[WordWall] ${f.filename} (${f.entry_count} entries)`));
       }
     })
     .catch(e => console.error("WordWall info failed:", e));
@@ -910,18 +731,14 @@ function pollStatus() {
 }
 
 function updateStatusUI(s) {
-  const box    = document.getElementById("status-display");
-  const msgEl  = document.getElementById("status-message");
+  const box     = document.getElementById("status-display");
+  const msgEl   = document.getElementById("status-message");
   const btnStop = document.getElementById("btn-stop");
-  const progressContainer = document.getElementById("progress-container");
-  const progressBar       = document.getElementById("progress-bar");
+  const pc      = document.getElementById("progress-container");
+  const pb      = document.getElementById("progress-bar");
 
-  // Reset classes
   box.className = "status-box";
-
-  let pct = 0;
-  if (s.total > 0) pct = Math.round((s.progress / s.total) * 100);
-
+  let pct = s.total > 0 ? Math.round((s.progress / s.total) * 100) : 0;
   const phase = s.session_phase || s.phase || "idle";
 
   if (phase === "phase1") {
@@ -932,7 +749,7 @@ function updateStatusUI(s) {
     box.classList.add("phase2");
     msgEl.textContent = s.message || t().phase2;
     btnStop.disabled = true;
-  } else if (phase === "phase3" || phase === "phase3_done") {
+  } else if (phase === "phase3") {
     box.classList.add("phase3");
     msgEl.textContent = s.message || t().phase3;
     btnStop.disabled = true;
@@ -940,77 +757,73 @@ function updateStatusUI(s) {
     box.classList.add("translating");
     msgEl.textContent = t().translating(s.message, pct, s.eta || "--");
     btnStop.disabled = false;
-    progressContainer.classList.add("visible");
-    progressBar.style.width = pct + "%";
-    // Also update translate mode buttons
-    document.getElementById("btn-start").disabled = true;
-    document.getElementById("btn-stop-translate").disabled = false;
+    pc.classList.add("visible");
+    pb.style.width = pct + "%";
   } else if (s.status === "done") {
     box.classList.add("done");
     msgEl.textContent = t().done(s.message);
     btnStop.disabled = true;
-    progressContainer.classList.remove("visible");
-    document.getElementById("btn-start").disabled = !xmlReady;
-    document.getElementById("btn-stop-translate").disabled = true;
+    pc.classList.remove("visible");
   } else {
-    // idle
     msgEl.textContent = s.message || t().idle;
     btnStop.disabled = true;
-    progressContainer.classList.remove("visible");
-    document.getElementById("btn-start").disabled = !xmlReady;
-    document.getElementById("btn-stop-translate").disabled = true;
+    pc.classList.remove("visible");
   }
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
-//  ORCHESTRATOR — SUBMIT TASK (Phase 1)
+//  PHASE 1 — SUBMIT TASK
 // ══════════════════════════════════════════════════════════════════════════════
 function submitTask() {
   const prompt = document.getElementById("task-input").value.trim();
   if (!prompt) { appendLog(t().needPrompt); return; }
 
   document.getElementById("btn-submit").disabled = true;
-  isSessionActive = true;
-  appendLog(`[submit] ${prompt.substring(0, 80)}...`);
-
-  // Clear previous session UI
   hideContextPanel();
-  hideSummaryCard();
-  hideDumpResult();
-  document.getElementById("btn-finalize").classList.remove("visible");
-  document.getElementById("btn-finalize").style.display = "none";
+  hideDumpCard();
+  document.getElementById("btn-start-translation").classList.remove("visible");
+  document.getElementById("btn-start-translation").style.display = "none";
+
+  appendLog(`[submit] ${prompt.substring(0, 80)}${prompt.length > 80 ? "..." : ""}`);
 
   fetch(BASE + "/api/classify", {
     method: "POST",
     headers: {"Content-Type": "application/json"},
-    body: JSON.stringify({prompt: prompt, lang: currentLang})
+    body: JSON.stringify({prompt, lang: currentLang})
   })
   .then(r => r.json())
   .then(d => {
-    if (!d.ok) { appendLog(t().xmlError(d.error)); document.getElementById("btn-submit").disabled = false; return; }
+    if (!d.ok) {
+      appendLog(`[ERROR] ${d.error}`);
+      document.getElementById("btn-submit").disabled = false;
+      return;
+    }
 
-    const intentLabel = d.intent === "direct_coding" ? t().intentDirect
-                      : d.intent === "coding_adjacent" ? t().intentAdjacent
-                      : t().intentNonCoding;
-    appendLog(`[phase1] Intent: ${intentLabel}`);
+    const intentLabel = d.intent === "translate" ? t().intentTranslate : t().intentQuery;
+    appendLog(t().phase1(intentLabel));
+
+    if (d.xml_path_detected) {
+      appendLog(t().xmlDetected(d.xml_path_detected));
+    }
 
     if (d.action === "gather_context" && d.question) {
       showContextPanel();
       addChatBubble("system", d.question.text);
       renderQuestionOptions(d.question);
-    } else if (d.action === "info_response") {
-      appendLog(`[phase1] ${d.message}`);
-      document.getElementById("btn-submit").disabled = false;
     } else {
+      // query — not a translation task
       appendLog(`[phase1] ${d.message}`);
       document.getElementById("btn-submit").disabled = false;
     }
   })
-  .catch(e => { appendLog(t().xmlError(e)); document.getElementById("btn-submit").disabled = false; });
+  .catch(e => {
+    appendLog(`[ERROR] ${e}`);
+    document.getElementById("btn-submit").disabled = false;
+  });
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
-//  CONTEXT GATHERING (Phase 2)
+//  PHASE 2 — CONTEXT DIALOG
 // ══════════════════════════════════════════════════════════════════════════════
 function showContextPanel() {
   document.getElementById("context-panel").classList.add("visible");
@@ -1023,7 +836,7 @@ function hideContextPanel() {
 }
 
 function addChatBubble(role, text) {
-  const chat = document.getElementById("context-chat");
+  const chat   = document.getElementById("context-chat");
   const bubble = document.createElement("div");
   bubble.className = `chat-bubble ${role}`;
   bubble.textContent = text;
@@ -1032,146 +845,125 @@ function addChatBubble(role, text) {
 }
 
 function renderQuestionOptions(question) {
-  const optionsDiv = document.getElementById("context-options");
-  const freeDiv    = document.getElementById("context-free-input");
-  optionsDiv.innerHTML = "";
+  const optDiv  = document.getElementById("context-options");
+  const freeDiv = document.getElementById("context-free-input");
+  optDiv.innerHTML = "";
   freeDiv.style.display = "none";
 
-  // Update step indicator
-  document.getElementById("step-indicator").textContent = `${question.index + 1} / ${question.total}`;
+  document.getElementById("step-indicator").textContent =
+    `${question.index + 1} / ${question.total}`;
 
   if (question.options) {
-    // Render option buttons
-    question.options.forEach(opt => {
+    question.options.forEach((opt, i) => {
       const btn = document.createElement("button");
       btn.className = "context-option-btn";
       btn.textContent = opt;
-      btn.onclick = () => submitContextAnswer(opt);
-      optionsDiv.appendChild(btn);
+      btn.onclick = () => submitContextAnswer(opt, i);
+      optDiv.appendChild(btn);
     });
   } else {
-    // Free-form input
     freeDiv.style.display = "flex";
     document.getElementById("free-input").value = "";
-    document.getElementById("free-input").placeholder = t().inputPlaceholder;
     document.getElementById("free-input").focus();
   }
 }
 
-function submitContextAnswer(answer) {
+function submitContextAnswer(answer, optionIndex = null) {
   addChatBubble("user", answer);
-  // Clear options
   document.getElementById("context-options").innerHTML = "";
   document.getElementById("context-free-input").style.display = "none";
 
   fetch(BASE + "/api/respond", {
     method: "POST",
     headers: {"Content-Type": "application/json"},
-    body: JSON.stringify({answer: answer, lang: currentLang})
+    body: JSON.stringify({answer, option_index: optionIndex, lang: currentLang})
   })
   .then(r => r.json())
   .then(d => {
-    if (!d.ok) { appendLog(t().xmlError(d.error)); return; }
+    if (!d.ok) { appendLog(`[ERROR] ${d.error}`); return; }
 
     if (d.action === "next_question") {
       addChatBubble("system", d.question.text);
       renderQuestionOptions(d.question);
-    } else if (d.action === "ready_to_finalize") {
-      appendLog("[phase2] Context gathering complete");
-      showSummaryCard(d.session_summary);
-      document.getElementById("btn-finalize").classList.add("visible");
-      document.getElementById("btn-finalize").style.display = "block";
-      document.getElementById("btn-submit").disabled = true;
+
+    } else if (d.action === "dump_ready") {
+      // ── Phase 3 complete: DUMP_READY ────────────────────────────────────
+      appendLog(t().dumpReady);
+      appendLog(`[phase3] DUMP_READY`);
+      hideContextPanel();
+      showDumpCard(d.summary);
+      document.getElementById("btn-start-translation").classList.add("visible");
+      document.getElementById("btn-start-translation").style.display = "block";
+      document.getElementById("btn-submit").disabled = false;
     }
   })
-  .catch(e => appendLog(t().xmlError(e)));
+  .catch(e => appendLog(`[ERROR] ${e}`));
 }
 
 function submitFreeInput() {
   const input = document.getElementById("free-input");
-  const val = input.value.trim();
+  const val   = input.value.trim();
   if (!val) return;
-  submitContextAnswer(val);
+  submitContextAnswer(val, null);
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
-//  SUMMARY CARD
+//  DUMP READY CARD (Phase 3)
 // ══════════════════════════════════════════════════════════════════════════════
-function showSummaryCard(summary) {
-  const card = document.getElementById("summary-card");
-  const body = document.getElementById("summary-body");
+function showDumpCard(summary) {
+  const card = document.getElementById("dump-card");
+  const body = document.getElementById("dump-card-body");
+  const s    = t();
   body.innerHTML = "";
 
+  const styleStr = s.styleLabel[summary.style] || summary.style;
   const rows = [
-    ["Language", summary.language],
-    ["Task Type", summary.task_type],
-    ["Scope", summary.output_scope],
-    ["Has Code", summary.has_code ? "Yes" : "No"],
-    ["Constraints", summary.constraints.length > 0 ? summary.constraints.join(", ") : "None"],
+    ["XML ファイル", summary.xml_path],
+    ["翻訳スタイル", styleStr],
+    ["WordWall辞書", summary.use_wordwall  ? "使用" : "未使用"],
+    ["翻訳済みスキップ", summary.skip_translated ? "あり" : "なし"],
   ];
   rows.forEach(([key, val]) => {
     const row = document.createElement("div");
-    row.className = "summary-row";
-    row.innerHTML = `<span class="summary-key">${key}</span><span class="summary-value">${val}</span>`;
+    row.className = "dump-row";
+    row.innerHTML = `<span class="dump-key">${key}</span><span class="dump-value" title="${val}">${val}</span>`;
     body.appendChild(row);
   });
   card.classList.add("visible");
 }
-function hideSummaryCard() {
-  document.getElementById("summary-card").classList.remove("visible");
+function hideDumpCard() {
+  document.getElementById("dump-card").classList.remove("visible");
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
-//  FINALIZE (Phase 3)
+//  START TRANSLATION (Phase 3 → 4)
 // ══════════════════════════════════════════════════════════════════════════════
-function finalizeTask() {
-  fetch(BASE + "/api/finalize", {
+function startFromDump() {
+  document.getElementById("btn-start-translation").disabled = true;
+
+  fetch(BASE + "/api/start_translation", {
     method: "POST",
     headers: {"Content-Type": "application/json"},
   })
   .then(r => r.json())
   .then(d => {
-    if (!d.ok) { appendLog(t().xmlError(d.error)); return; }
-    appendLog(t().dumpDone(d.path));
-    showDumpResult(d.payload);
-    document.getElementById("btn-finalize").style.display = "none";
-    document.getElementById("btn-submit").disabled = false;
-    isSessionActive = false;
+    if (!d.ok) {
+      appendLog(`[ERROR] ${d.error}`);
+      document.getElementById("btn-start-translation").disabled = false;
+      return;
+    }
+    appendLog(t().startJob(d.xml_path));
+    document.getElementById("btn-start-translation").classList.remove("visible");
+    document.getElementById("btn-start-translation").style.display = "none";
   })
-  .catch(e => appendLog(t().xmlError(e)));
-}
-
-function showDumpResult(payload) {
-  const el = document.getElementById("dump-result");
-  document.getElementById("dump-content").textContent = JSON.stringify(payload, null, 2);
-  el.classList.add("visible");
-}
-function hideDumpResult() {
-  document.getElementById("dump-result").classList.remove("visible");
+  .catch(e => {
+    appendLog(`[ERROR] ${e}`);
+    document.getElementById("btn-start-translation").disabled = false;
+  });
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
-//  RESET
-// ══════════════════════════════════════════════════════════════════════════════
-function resetSession() {
-  fetch(BASE + "/api/reset", {method: "POST"})
-    .then(r => r.json())
-    .then(d => {
-      if (d.ok) {
-        appendLog(t().resetDone);
-        hideContextPanel();
-        hideSummaryCard();
-        hideDumpResult();
-        document.getElementById("btn-submit").disabled = false;
-        document.getElementById("btn-finalize").style.display = "none";
-        document.getElementById("task-input").value = "";
-        isSessionActive = false;
-      }
-    });
-}
-
-// ══════════════════════════════════════════════════════════════════════════════
-//  STOP (shared)
+//  STOP / RESET
 // ══════════════════════════════════════════════════════════════════════════════
 function stopTask() {
   fetch(BASE + "/api/stop", {method: "POST"})
@@ -1179,61 +971,20 @@ function stopTask() {
     .then(d => { if (d.ok) appendLog(t().stopped); });
 }
 
-// ══════════════════════════════════════════════════════════════════════════════
-//  TRANSLATION MODE (legacy)
-// ══════════════════════════════════════════════════════════════════════════════
-function checkXML() {
-  const pathInput = document.getElementById("xml-path");
-  const path = pathInput.value.trim().replace(/^["']|["']$/g, "").replace(/"/g, "").replace(/'/g, "");
-  if (!path) {
-    document.getElementById("file-name").textContent = "-";
-    document.getElementById("entry-count").textContent = "-";
-    xmlReady = false;
-    return;
-  }
-  fetch(BASE + "/api/xml_info", {
-    method: "POST",
-    headers: {"Content-Type": "application/json"},
-    body: JSON.stringify({xml_path: path})
-  })
-  .then(r => r.json())
-  .then(d => {
-    if (d.ok) {
-      xmlReady = true;
-      currentPath = path;
-      const fname = path.split('\\').pop().split('/').pop();
-      document.getElementById("file-name").textContent = fname;
-      document.getElementById("entry-count").textContent = d.count;
-      appendLog(t().xmlOk(d.count, fname));
-    } else {
-      xmlReady = false;
-      document.getElementById("entry-count").textContent = "ERROR";
-      appendLog(t().xmlError(d.error));
-    }
-  })
-  .catch(e => appendLog(t().xmlError(e)));
-}
-
-function startTranslation() {
-  const pathInput = document.getElementById("xml-path");
-  const path = pathInput.value.trim().replace(/^["']|["']$/g, "").replace(/"/g, "").replace(/'/g, "");
-  if (!path) { appendLog(t().needPath); return; }
-  document.getElementById("btn-start").disabled = true;
-  appendLog(t().jobSent(path));
-  fetch(BASE + "/api/translate", {
-    method: "POST",
-    headers: {"Content-Type": "application/json"},
-    body: JSON.stringify({xml_path: path})
-  })
-  .then(r => r.json())
-  .then(d => { if (!d.ok) appendLog(t().xmlError(d.error)); })
-  .catch(e => appendLog(t().xmlError(e)));
-}
-
-function stopTranslation() {
-  fetch(BASE + "/api/stop", {method: "POST"})
+function resetSession() {
+  fetch(BASE + "/api/reset", {method: "POST"})
     .then(r => r.json())
-    .then(d => { if (d.ok) appendLog(t().stopped); });
+    .then(d => {
+      if (d.ok) {
+        appendLog(t().resetDone);
+        hideContextPanel();
+        hideDumpCard();
+        document.getElementById("btn-submit").disabled = false;
+        document.getElementById("btn-start-translation").style.display = "none";
+        document.getElementById("btn-start-translation").classList.remove("visible");
+        document.getElementById("task-input").value = "";
+      }
+    });
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
@@ -1241,7 +992,7 @@ function stopTranslation() {
 // ══════════════════════════════════════════════════════════════════════════════
 function appendLog(text) {
   const log = document.getElementById("log");
-  const ts = new Date().toLocaleTimeString();
+  const ts  = new Date().toLocaleTimeString();
   log.textContent += `[${ts}] ${text}\n`;
   log.scrollTop = log.scrollHeight;
 }

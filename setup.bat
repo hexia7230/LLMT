@@ -44,6 +44,5 @@ echo.
 echo ============================================================
 echo  Setup completed successfully.
 echo  Please execute run.bat to start the orchestrator.
-echo  Execute run_coder.bat to run the coder (Phase 4).
 echo ============================================================
 pause
