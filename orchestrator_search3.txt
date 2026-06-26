@@ -1,0 +1,15 @@
+            for c in text
+        )
+        if not has_cjk:
+            ascii_alpha = sum(1 for c in text if c.isascii() and c.isalpha())
+            if len(text) > 0 and ascii_alpha / len(text) > 0.55:
+                return src
+    else:
+        # 英語求めなのに日本語まま出力された場合は元のテキストにフォールバック
+        if _has_japanese(text) and not _has_english(text):
+            return src
+    return text
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+#  PROMPT BUILDER

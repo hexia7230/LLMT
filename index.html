@@ -3,137 +3,132 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="description" content="LLMT Orchestrator — AI-driven Skyrim MOD XML localization pipeline with natural language interface.">
-<title>LLMT Orchestrator</title>
+<meta name="description" content="LLMT - AI Skyrim MOD XML translation utility.">
+<title>LLMT Translation Pipeline</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
 /* ═══════════════════════════════════════════════════════════════════════
-   DESIGN SYSTEM — LLMT Orchestrator v3.0
+   DESIGN SYSTEM — LLMT Light Theme (Square Corners)
    ═══════════════════════════════════════════════════════════════════════ */
 :root {
-  --bg-root:     #0a0e17;
-  --bg-surface:  #111827;
-  --bg-elevated: #1a2236;
-  --bg-input:    #0d1321;
-  --border:      #1e293b;
-  --border-focus:#3b82f6;
-  --text-primary:#e2e8f0;
-  --text-secondary:#94a3b8;
+  --bg-root:     #f8fafc;
+  --bg-surface:  #ffffff;
+  --bg-elevated: #f1f5f9;
+  --bg-input:    #ffffff;
+  --border:      #cbd5e1;
+  --border-focus:#2563eb;
+  --text-primary:#0f172a;
+  --text-secondary:#334155;
   --text-muted:  #64748b;
-  --accent-blue: #3b82f6;
-  --accent-blue-hover: #2563eb;
-  --accent-cyan: #06b6d4;
-  --accent-green:#22c55e;
-  --accent-amber:#f59e0b;
-  --accent-red:  #ef4444;
-  --accent-purple:#a855f7;
-  --phase1-color:#f59e0b;
-  --phase2-color:#3b82f6;
-  --phase3-color:#22c55e;
-  --translating-color:#06b6d4;
-  --glow-blue:   0 0 20px rgba(59,130,246,0.15);
-  --glow-green:  0 0 20px rgba(34,197,94,0.15);
-  --glow-amber:  0 0 20px rgba(245,158,11,0.15);
-  --transition:  0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  --accent-blue: #2563eb;
+  --accent-blue-hover: #1d4ed8;
+  --accent-cyan: #0891b2;
+  --accent-green:#16a34a;
+  --accent-amber:#d97706;
+  --accent-red:  #dc2626;
+  --accent-purple:#7c3aed;
+  --phase1-color:#d97706;
+  --phase2-color:#2563eb;
+  --phase3-color:#16a34a;
+  --translating-color:#0891b2;
   --font-sans:   'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
   --font-mono:   'JetBrains Mono', 'Consolas', monospace;
 }
 
-* { box-sizing: border-box; margin: 0; padding: 0; }
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  border-radius: 0 !important; /* Force square corners on everything */
+}
 
 body {
   font-family: var(--font-sans);
-  font-size: 14px;
+  font-size: 13px;
   background: var(--bg-root);
   color: var(--text-primary);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
   min-height: 100vh;
   padding: 24px 16px;
   -webkit-font-smoothing: antialiased;
 }
 
-body::before {
-  content: '';
-  position: fixed;
-  inset: 0;
-  background:
-    radial-gradient(ellipse 800px 600px at 50% 0%, rgba(59,130,246,0.06), transparent),
-    radial-gradient(ellipse 600px 400px at 80% 100%, rgba(168,85,247,0.04), transparent);
-  pointer-events: none;
-  z-index: 0;
-}
-
 #app {
-  position: relative;
-  z-index: 1;
-  width: 640px;
-  max-width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  width: 100%;
 }
 
-/* ── Header ─────────────────────────────────────────────────────────── */
+/* Header */
 .header-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding-bottom: 16px;
-  margin-bottom: 24px;
-  border-bottom: 1px solid var(--border);
+  padding-bottom: 12px;
+  margin-bottom: 20px;
+  border-bottom: 2px solid var(--text-primary);
 }
 
 h1 {
-  font-size: 18px;
+  font-size: 15px;
   font-weight: 700;
-  letter-spacing: 3px;
+  letter-spacing: 0.5px;
   color: var(--text-primary);
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
+  text-transform: uppercase;
 }
-h1 .version-badge {
-  font-size: 10px;
-  font-weight: 500;
-  color: var(--accent-blue);
-  background: rgba(59,130,246,0.12);
-  padding: 2px 8px;
-  border-radius: 100px;
-  letter-spacing: 1px;
+h1 .version-text {
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--text-muted);
+  text-transform: none;
 }
 
-/* ── Language Toggle ────────────────────────────────────────────────── */
+/* Language Toggle */
 #lang-toggle {
   display: flex;
   border: 1px solid var(--border);
-  border-radius: 8px;
   overflow: hidden;
   flex-shrink: 0;
 }
 #lang-toggle button {
-  flex: none;
-  padding: 6px 14px;
+  padding: 4px 12px;
   font-size: 11px;
   font-weight: 600;
-  font-family: var(--font-sans);
   cursor: pointer;
   border: none;
   background: var(--bg-elevated);
   color: var(--text-muted);
-  letter-spacing: 1px;
-  transition: all var(--transition);
+  letter-spacing: 0.5px;
+  transition: background 0.15s, color 0.15s;
 }
 #lang-toggle button.active {
-  background: var(--accent-blue);
+  background: var(--text-primary);
   color: #fff;
 }
 #lang-toggle button:not(.active):hover {
-  background: var(--bg-surface);
-  color: var(--text-secondary);
+  background: var(--border);
+  color: var(--text-primary);
 }
 
-/* ── Sections ───────────────────────────────────────────────────────── */
+/* Main Layout Grid */
+.main-layout {
+  display: grid;
+  grid-template-columns: 480px 1fr;
+  gap: 24px;
+  width: 100%;
+  align-items: start;
+}
+
+@media (max-width: 1024px) {
+  .main-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
 .section { margin-bottom: 16px; }
 
 label {
@@ -141,39 +136,36 @@ label {
   margin-bottom: 6px;
   color: var(--text-secondary);
   font-size: 11px;
-  font-weight: 600;
+  font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 1.5px;
+  letter-spacing: 1px;
 }
 
-/* ── Inputs ─────────────────────────────────────────────────────────── */
+/* Inputs */
 textarea.task-input,
 input[type="text"] {
   width: 100%;
-  padding: 12px 16px;
+  padding: 10px 12px;
   background: var(--bg-input);
   border: 1px solid var(--border);
   color: var(--text-primary);
   font-family: var(--font-mono);
-  font-size: 13px;
-  border-radius: 10px;
+  font-size: 12px;
   outline: none;
-  transition: border-color var(--transition), box-shadow var(--transition);
+  transition: border-color 0.15s;
   resize: vertical;
 }
-textarea.task-input { min-height: 80px; line-height: 1.6; }
+textarea.task-input { min-height: 80px; line-height: 1.5; }
 textarea.task-input:focus,
 input[type="text"]:focus {
-  border-color: var(--accent-blue);
-  box-shadow: var(--glow-blue);
+  border-color: var(--border-focus);
 }
 textarea.task-input::placeholder,
 input[type="text"]::placeholder {
   color: var(--text-muted);
-  font-style: italic;
 }
 
-/* ── Info Grid ──────────────────────────────────────────────────────── */
+/* Info Grid */
 .grid-info {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -183,244 +175,219 @@ input[type="text"]::placeholder {
 .info-card {
   background: var(--bg-surface);
   border: 1px solid var(--border);
-  border-radius: 10px;
-  padding: 14px 16px;
-  transition: border-color var(--transition);
+  padding: 12px;
 }
-.info-card:hover { border-color: var(--border-focus); }
 .info-label {
   font-size: 10px;
-  font-weight: 600;
+  font-weight: 700;
   color: var(--text-muted);
   text-transform: uppercase;
-  letter-spacing: 1.5px;
-  margin-bottom: 6px;
+  letter-spacing: 0.5px;
+  margin-bottom: 4px;
 }
 .info-val {
-  font-size: 20px;
+  font-size: 18px;
   font-family: var(--font-mono);
   font-weight: 700;
-  color: var(--accent-cyan);
+  color: var(--text-primary);
 }
 
-/* ── Status Box ─────────────────────────────────────────────────────── */
+/* Status Box */
 .status-box {
   background: var(--bg-surface);
   border: 1px solid var(--border);
   border-left: 4px solid var(--text-muted);
-  border-radius: 10px;
-  padding: 14px 18px;
-  font-size: 13px;
+  padding: 12px 16px;
+  font-size: 12px;
   margin-bottom: 16px;
-  min-height: 48px;
   display: flex;
   align-items: center;
   gap: 10px;
-  transition: border-color var(--transition), box-shadow var(--transition);
 }
-.status-box .status-dot {
+.status-box .status-square {
   width: 8px;
   height: 8px;
-  border-radius: 50%;
   background: var(--text-muted);
   flex-shrink: 0;
-  transition: background var(--transition);
 }
-.status-box.phase1 { border-left-color: var(--phase1-color); box-shadow: var(--glow-amber); }
-.status-box.phase1 .status-dot { background: var(--phase1-color); animation: pulse 1.5s infinite; }
-.status-box.phase2 { border-left-color: var(--phase2-color); box-shadow: var(--glow-blue); }
-.status-box.phase2 .status-dot { background: var(--phase2-color); animation: pulse 1.5s infinite; }
-.status-box.phase3 { border-left-color: var(--phase3-color); box-shadow: var(--glow-green); }
-.status-box.phase3 .status-dot { background: var(--phase3-color); animation: pulse 1.5s infinite; }
+.status-box.phase1 { border-left-color: var(--phase1-color); }
+.status-box.phase1 .status-square { background: var(--phase1-color); animation: pulse 1.5s infinite; }
+.status-box.phase2 { border-left-color: var(--phase2-color); }
+.status-box.phase2 .status-square { background: var(--phase2-color); animation: pulse 1.5s infinite; }
+.status-box.phase3 { border-left-color: var(--phase3-color); }
+.status-box.phase3 .status-square { background: var(--phase3-color); animation: pulse 1.5s infinite; }
 .status-box.translating { border-left-color: var(--translating-color); }
-.status-box.translating .status-dot { background: var(--translating-color); animation: pulse 1.5s infinite; }
+.status-box.translating .status-square { background: var(--translating-color); animation: pulse 1.5s infinite; }
 .status-box.done { border-left-color: var(--accent-green); }
-.status-box.done .status-dot { background: var(--accent-green); }
+.status-box.done .status-square { background: var(--accent-green); }
 .status-box.error { border-left-color: var(--accent-red); }
-.status-box.error .status-dot { background: var(--accent-red); }
+.status-box.error .status-square { background: var(--accent-red); }
 
 @keyframes pulse {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.4; }
 }
 
-/* ── Context Panel (Phase 2 Dialog) ────────────────────────────────── */
+/* Context Panel (Phase 2 Dialog) */
 .context-panel {
   background: var(--bg-surface);
   border: 1px solid var(--border);
-  border-radius: 10px;
   margin-bottom: 16px;
-  overflow: hidden;
   display: none;
 }
 .context-panel.visible { display: block; }
 .context-panel-header {
-  padding: 12px 18px;
+  padding: 10px 14px;
   font-size: 11px;
-  font-weight: 600;
+  font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 1.5px;
   color: var(--text-secondary);
   border-bottom: 1px solid var(--border);
   display: flex;
   align-items: center;
-  gap: 8px;
+  justify-content: space-between;
 }
 .context-panel-header .step-indicator {
   color: var(--accent-blue);
   font-family: var(--font-mono);
 }
 .context-chat {
-  max-height: 300px;
+  max-height: 240px;
   overflow-y: auto;
-  padding: 16px;
+  padding: 12px;
+  background: var(--bg-elevated);
 }
 .chat-bubble {
-  margin-bottom: 12px;
-  padding: 10px 14px;
-  border-radius: 10px;
-  font-size: 13px;
-  line-height: 1.5;
+  margin-bottom: 10px;
+  padding: 8px 12px;
+  font-size: 12px;
+  line-height: 1.4;
   max-width: 90%;
-  animation: fadeSlideUp 0.25s ease-out;
-}
-@keyframes fadeSlideUp {
-  from { opacity: 0; transform: translateY(8px); }
-  to   { opacity: 1; transform: translateY(0); }
 }
 .chat-bubble.system {
-  background: var(--bg-elevated);
+  background: var(--bg-surface);
   border: 1px solid var(--border);
-  color: var(--text-secondary);
+  color: var(--text-primary);
   margin-right: auto;
 }
 .chat-bubble.user {
-  background: rgba(59,130,246,0.12);
-  border: 1px solid rgba(59,130,246,0.2);
-  color: var(--text-primary);
+  background: var(--text-primary);
+  color: #fff;
   margin-left: auto;
   text-align: right;
 }
 .context-options {
   display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  padding: 0 16px 16px;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px;
 }
 .context-option-btn {
-  padding: 8px 18px;
+  padding: 8px 12px;
   font-size: 12px;
   font-weight: 600;
-  font-family: var(--font-sans);
+  text-align: left;
   border: 1px solid var(--border);
-  border-radius: 8px;
-  background: var(--bg-elevated);
+  background: var(--bg-surface);
   color: var(--text-primary);
   cursor: pointer;
-  transition: all var(--transition);
+  transition: background 0.15s, border-color 0.15s;
 }
 .context-option-btn:hover {
-  background: var(--accent-blue);
-  color: #fff;
-  border-color: var(--accent-blue);
-  transform: translateY(-1px);
+  background: var(--bg-elevated);
+  border-color: var(--text-primary);
 }
 .context-free-input {
   display: flex;
   gap: 8px;
-  padding: 0 16px 16px;
+  padding: 12px;
+  border-top: 1px solid var(--border);
 }
 .context-free-input input {
   flex: 1;
-  padding: 10px 14px;
+  padding: 8px;
   background: var(--bg-input);
   border: 1px solid var(--border);
   color: var(--text-primary);
   font-family: var(--font-mono);
   font-size: 12px;
-  border-radius: 8px;
   outline: none;
 }
-.context-free-input input:focus { border-color: var(--accent-blue); }
 .context-free-input button {
-  padding: 10px 20px;
-  background: var(--accent-blue);
+  padding: 8px 16px;
+  background: var(--text-primary);
   color: #fff;
   border: none;
-  border-radius: 8px;
   font-size: 12px;
   font-weight: 600;
-  font-family: var(--font-sans);
   cursor: pointer;
-  transition: background var(--transition);
 }
-.context-free-input button:hover { background: var(--accent-blue-hover); }
+.context-free-input button:hover {
+  background: var(--text-secondary);
+}
 
-/* ── Dump Ready Card (Phase 3 summary) ─────────────────────────────── */
+/* Dump Ready Card (Phase 3 summary) */
 .dump-card {
   background: var(--bg-surface);
-  border: 1px solid rgba(34,197,94,0.25);
-  border-radius: 10px;
+  border: 2px solid var(--accent-green);
   margin-bottom: 16px;
-  overflow: hidden;
   display: none;
 }
-.dump-card.visible { display: block; animation: fadeSlideUp 0.3s ease-out; }
+.dump-card.visible { display: block; }
 .dump-card-header {
-  background: rgba(34,197,94,0.08);
-  padding: 12px 18px;
+  background: rgba(22, 163, 74, 0.08);
+  padding: 10px 14px;
   font-size: 11px;
-  font-weight: 600;
+  font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 1.5px;
   color: var(--accent-green);
-  border-bottom: 1px solid rgba(34,197,94,0.15);
-  display: flex;
-  align-items: center;
-  gap: 8px;
+  border-bottom: 1px solid var(--accent-green);
 }
 .dump-card-body {
-  padding: 14px 18px;
+  padding: 12px;
 }
 .dump-row {
   display: flex;
   justify-content: space-between;
   align-items: center;
   padding: 6px 0;
-  font-size: 13px;
-  border-bottom: 1px solid var(--border);
+  font-size: 12px;
+  border-bottom: 1px solid var(--bg-elevated);
 }
 .dump-row:last-child { border-bottom: none; }
 .dump-key   { color: var(--text-secondary); }
-.dump-value { color: var(--accent-cyan); font-family: var(--font-mono); font-size: 12px; font-weight: 500; max-width: 60%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: right; }
+.dump-value { color: var(--text-primary); font-family: var(--font-mono); font-weight: 600; max-width: 60%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
-/* ── Buttons ────────────────────────────────────────────────────────── */
+/* Buttons */
 .actions {
-  display: flex;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
   gap: 10px;
   margin-bottom: 16px;
 }
-
 button.action-btn {
-  flex: 1;
-  padding: 12px;
-  font-size: 13px;
-  font-weight: 600;
-  font-family: var(--font-sans);
+  padding: 10px;
+  font-size: 12px;
+  font-weight: 700;
   cursor: pointer;
-  border: none;
-  border-radius: 10px;
-  transition: all var(--transition);
+  border: 1px solid var(--border);
+  background: var(--bg-surface);
+  color: var(--text-primary);
+  text-transform: uppercase;
   letter-spacing: 0.5px;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
 }
-
+button.action-btn:hover:not(:disabled) {
+  background: var(--bg-elevated);
+}
 #btn-submit {
-  background: linear-gradient(135deg, var(--accent-blue) 0%, var(--accent-purple) 100%);
+  background: var(--text-primary);
   color: #fff;
+  border: none;
+  grid-column: span 2;
 }
 #btn-submit:hover:not(:disabled) {
-  transform: translateY(-1px);
-  box-shadow: 0 4px 16px rgba(59,130,246,0.3);
+  background: var(--text-secondary);
 }
 #btn-submit:disabled {
   background: var(--bg-elevated);
@@ -429,23 +396,23 @@ button.action-btn {
 }
 
 #btn-start-translation {
-  background: linear-gradient(135deg, var(--accent-green) 0%, #16a34a 100%);
+  background: var(--accent-green);
   color: #fff;
-  flex: 1;
+  border: none;
+  grid-column: span 2;
   display: none;
 }
 #btn-start-translation.visible { display: block; }
 #btn-start-translation:hover:not(:disabled) {
-  transform: translateY(-1px);
-  box-shadow: 0 4px 16px rgba(34,197,94,0.3);
+  background: #15803d;
 }
 
 #btn-stop {
   background: var(--accent-red);
   color: #fff;
-  flex: 0.5;
+  border: none;
 }
-#btn-stop:hover:not(:disabled) { background: #dc2626; }
+#btn-stop:hover:not(:disabled) { background: #b91c1c; }
 #btn-stop:disabled {
   background: var(--bg-elevated);
   color: var(--text-muted);
@@ -454,22 +421,19 @@ button.action-btn {
 
 #btn-reset {
   background: var(--bg-elevated);
-  border: 1px solid var(--border);
   color: var(--text-secondary);
-  flex: 0.5;
 }
 #btn-reset:hover:not(:disabled) {
-  background: var(--bg-surface);
+  background: var(--border);
   color: var(--text-primary);
-  border-color: var(--text-muted);
 }
 
-/* ── Progress Bar ───────────────────────────────────────────────────── */
+/* Progress Bar */
 .progress-bar-container {
   width: 100%;
-  height: 4px;
+  height: 6px;
   background: var(--bg-elevated);
-  border-radius: 2px;
+  border: 1px solid var(--border);
   margin-bottom: 16px;
   overflow: hidden;
   display: none;
@@ -477,34 +441,126 @@ button.action-btn {
 .progress-bar-container.visible { display: block; }
 .progress-bar {
   height: 100%;
-  background: linear-gradient(90deg, var(--accent-blue), var(--accent-cyan));
-  border-radius: 2px;
+  background: var(--accent-cyan);
   width: 0%;
-  transition: width 0.4s ease;
+  transition: width 0.3s ease;
 }
 
-/* ── Log ────────────────────────────────────────────────────────────── */
+/* Real-time Monitor Card */
+.monitor-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  padding: 16px;
+  margin-bottom: 24px;
+}
+.monitor-sublabel {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  margin-bottom: 8px;
+  letter-spacing: 0.5px;
+}
+.current-item-box {
+  margin-bottom: 16px;
+}
+.current-translation-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+.text-block {
+  border: 1px solid var(--border);
+  padding: 10px;
+  background: var(--bg-elevated);
+}
+.text-block.source-block {
+  border-left: 3px solid var(--text-muted);
+}
+.text-block.dest-block {
+  border-left: 3px solid var(--accent-blue);
+  background: rgba(37, 99, 235, 0.03);
+}
+.block-label {
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  display: block;
+  margin-bottom: 4px;
+}
+.block-content {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  word-break: break-all;
+  min-height: 24px;
+  color: var(--text-primary);
+}
+
+.history-box {
+  margin-top: 16px;
+}
+.table-wrapper {
+  max-height: 250px;
+  overflow-y: auto;
+  border: 1px solid var(--border);
+  background: var(--bg-surface);
+}
+.monitor-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 11px;
+}
+.monitor-table th,
+.monitor-table td {
+  padding: 8px 10px;
+  text-align: left;
+  border-bottom: 1px solid var(--border);
+}
+.monitor-table th {
+  background: var(--bg-elevated);
+  font-weight: 700;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  font-size: 9px;
+  letter-spacing: 0.5px;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+.monitor-table td {
+  font-family: var(--font-mono);
+  vertical-align: top;
+  word-break: break-all;
+}
+.monitor-table tr:last-child td {
+  border-bottom: none;
+}
+.monitor-table tbody tr:hover {
+  background: var(--bg-elevated);
+}
+.empty-row {
+  text-align: center;
+  color: var(--text-muted);
+  padding: 20px !important;
+}
+
+/* Log */
 .log-container { width: 100%; }
 .log-container textarea {
   width: 100%;
   height: 200px;
-  background: var(--bg-input);
+  background: var(--bg-elevated);
   border: 1px solid var(--border);
-  color: #6ee7b7;
+  color: var(--text-primary);
   font-family: var(--font-mono);
   font-size: 11px;
-  padding: 14px;
+  padding: 12px;
   resize: vertical;
   outline: none;
-  border-radius: 10px;
-  line-height: 1.6;
-}
-
-/* ── Responsive ─────────────────────────────────────────────────────── */
-@media (max-width: 680px) {
-  #app { width: 100%; }
-  .context-options { flex-direction: column; }
-  .actions { flex-wrap: wrap; }
+  line-height: 1.5;
 }
 </style>
 </head>
@@ -513,83 +569,133 @@ button.action-btn {
 <div id="app">
   <!-- Header -->
   <div class="header-row">
-    <h1>LLMT ORCHESTRATOR <span class="version-badge">v3.0</span></h1>
+    <h1>LLMT Translation Pipeline <span class="version-text">v3.0</span></h1>
     <div id="lang-toggle">
       <button id="btn-lang-ja" class="active" onclick="setLang('ja')">JA</button>
       <button id="btn-lang-en" onclick="setLang('en')">EN</button>
     </div>
   </div>
 
-  <!-- Task Input -->
-  <div class="section">
-    <label id="label-task">タスク入力</label>
-    <textarea class="task-input" id="task-input"
-      placeholder="例：C:\path\to\file.xml を翻訳して" rows="3"></textarea>
-  </div>
+  <!-- Main Layout -->
+  <div class="main-layout">
+    <!-- Left Column: Settings and Controls -->
+    <div class="layout-left">
+      <!-- Task Input -->
+      <div class="section">
+        <label id="label-task">タスク入力</label>
+        <textarea class="task-input" id="task-input"
+          placeholder="例：C:\\path\\to\\file.xml を翻訳して" rows="3"></textarea>
+      </div>
 
-  <!-- WordWall Info -->
-  <div class="grid-info">
-    <div class="info-card">
-      <div class="info-label" id="label-ww-files">WordWall 参照ファイル</div>
-      <div id="ww-file-count" class="info-val">-</div>
+      <!-- WordWall Info -->
+      <div class="grid-info">
+        <div class="info-card">
+          <div class="info-label" id="label-ww-files">WordWall 参照ファイル</div>
+          <div id="ww-file-count" class="info-val">-</div>
+        </div>
+        <div class="info-card">
+          <div class="info-label" id="label-ww-terms">参照語数</div>
+          <div id="ww-term-count" class="info-val">-</div>
+        </div>
+      </div>
+
+      <!-- Status -->
+      <div id="status-display" class="status-box">
+        <div class="status-square"></div>
+        <div>
+          <span id="status-prefix">状態:</span>&nbsp;<span id="status-message">待機中</span>
+        </div>
+      </div>
+
+      <!-- Progress Bar -->
+      <div class="progress-bar-container" id="progress-container">
+        <div class="progress-bar" id="progress-bar"></div>
+      </div>
+
+      <!-- Context Panel (Phase 2 Dialog) -->
+      <div class="context-panel" id="context-panel">
+        <div class="context-panel-header">
+          <span id="context-header-text">翻訳設定</span>
+          <span class="step-indicator" id="step-indicator"></span>
+        </div>
+        <div class="context-chat" id="context-chat"></div>
+        <div class="context-options" id="context-options"></div>
+        <div class="context-free-input" id="context-free-input" style="display:none;">
+          <input type="text" id="free-input" placeholder="入力してください...">
+          <button onclick="submitFreeInput()" id="btn-free-send">送信</button>
+        </div>
+      </div>
+
+      <!-- Dump Ready Card (Phase 3) -->
+      <div class="dump-card" id="dump-card">
+        <div class="dump-card-header">
+          <span id="label-dump-header">DUMP_READY — translation_dump.json</span>
+        </div>
+        <div class="dump-card-body" id="dump-card-body"></div>
+      </div>
+
+      <!-- Actions -->
+      <div class="actions">
+        <button class="action-btn" id="btn-submit" onclick="submitTask()">送信</button>
+        <button class="action-btn" id="btn-start-translation" onclick="startFromDump()">翻訳開始</button>
+        <button class="action-btn" id="btn-stop" onclick="stopTask()" disabled>停止</button>
+        <button class="action-btn" id="btn-reset" onclick="resetSession()">リセット</button>
+      </div>
     </div>
-    <div class="info-card">
-      <div class="info-label" id="label-ww-terms">参照語数</div>
-      <div id="ww-term-count" class="info-val">-</div>
+
+    <!-- Right Column: Real-time Monitor and Console Logs -->
+    <div class="layout-right">
+      <!-- Real-time Translation Monitor -->
+      <div class="monitor-card" id="monitor-card">
+        <div class="current-item-box">
+          <div class="monitor-sublabel" id="label-monitor-current">現在の翻訳行 (Current Line)</div>
+          <div class="current-translation-grid">
+            <div class="text-block source-block">
+              <span class="block-label">Source</span>
+              <div id="monitor-current-source" class="block-content">-</div>
+            </div>
+            <div class="text-block dest-block">
+              <span class="block-label">Translation</span>
+              <div id="monitor-current-dest" class="block-content">-</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="history-box">
+          <div class="monitor-sublabel" id="label-monitor-history">翻訳履歴 (Recent Translations)</div>
+          <div class="table-wrapper">
+            <table class="monitor-table">
+              <thead>
+                <tr>
+                  <th style="width: 10%;">No.</th>
+                  <th style="width: 45%;">Source</th>
+                  <th style="width: 45%;">Translation</th>
+                </tr>
+              </thead>
+              <tbody id="monitor-history-body">
+                <tr>
+                  <td colspan="3" class="empty-row" id="label-monitor-empty">待機中 (Waiting...)</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Log Console -->
+      <div class="log-container">
+        <label id="label-log">コンソールログ</label>
+        <textarea id="log" readonly></textarea>
+      </div>
     </div>
-  </div>
-
-  <!-- Status -->
-  <div id="status-display" class="status-box">
-    <div class="status-dot"></div>
-    <span id="status-prefix">状態:</span>&nbsp;<span id="status-message">待機中</span>
-  </div>
-
-  <!-- Progress Bar -->
-  <div class="progress-bar-container" id="progress-container">
-    <div class="progress-bar" id="progress-bar"></div>
-  </div>
-
-  <!-- Context Panel (Phase 2 Dialog) -->
-  <div class="context-panel" id="context-panel">
-    <div class="context-panel-header">
-      <span id="context-header-text">翻訳設定</span>
-      <span class="step-indicator" id="step-indicator"></span>
-    </div>
-    <div class="context-chat" id="context-chat"></div>
-    <div class="context-options" id="context-options"></div>
-    <div class="context-free-input" id="context-free-input" style="display:none;">
-      <input type="text" id="free-input" placeholder="入力してください...">
-      <button onclick="submitFreeInput()" id="btn-free-send">送信</button>
-    </div>
-  </div>
-
-  <!-- Dump Ready Card (Phase 3) -->
-  <div class="dump-card" id="dump-card">
-    <div class="dump-card-header">
-      <span>✓ DUMP_READY — translation_dump.json</span>
-    </div>
-    <div class="dump-card-body" id="dump-card-body"></div>
-  </div>
-
-  <!-- Actions -->
-  <div class="actions">
-    <button class="action-btn" id="btn-submit" onclick="submitTask()">送信</button>
-    <button class="action-btn" id="btn-start-translation" onclick="startFromDump()">翻訳開始</button>
-    <button class="action-btn" id="btn-stop" onclick="stopTask()" disabled>停止</button>
-    <button class="action-btn" id="btn-reset" onclick="resetSession()">リセット</button>
-  </div>
-
-  <!-- Log Console -->
-  <div class="log-container">
-    <label id="label-log">コンソールログ</label>
-    <textarea id="log" readonly></textarea>
   </div>
 </div>
 
 <script>
 const BASE = window.location.origin;
 let currentLang = "ja";
+let lastLogCount = 0;
+let lastSummary = null;
 
 // ══════════════════════════════════════════════════════════════════════════════
 //  LOCALIZATION
@@ -610,7 +716,7 @@ const STRINGS = {
     sendLabel:       "送信",
     inputPlaceholder:"ファイルパスを入力してください...",
     idle:            "待機中",
-    phase1:          (intent) => `[Phase 1] Intent: ${intent}`,
+    phase1:          (intent) => `[Phase 1] 意図分類: ${intent}`,
     phase2:          "翻訳設定を収集中...",
     phase3:          "DUMP_READY — 翻訳設定完了",
     translating:     (msg, pct, eta) => `${msg} (${pct}% | 残り ${eta})`,
@@ -619,11 +725,30 @@ const STRINGS = {
     stopped:         "停止しました。",
     resetDone:       "セッションをリセットしました。",
     intentTranslate: "翻訳",
-    intentQuery:     "クエリ",
+    intentQuery:     "ヘルプクエリ",
     xmlDetected:     (p) => `[Phase 1] XMLパス検出: ${p}`,
     dumpReady:       "DUMP_READY — 翻訳ダンプを生成しました",
     startJob:        (p) => `翻訳ジョブを開始しました: ${p}`,
     styleLabel:      { game: "ゲーム公式", formal: "フォーマル", casual: "カジュアル" },
+    labelDumpHeader: "DUMP_READY — translation_dump.json",
+    labelMonitorCurrent: "現在の翻訳行 (Current Line)",
+    labelMonitorHistory: "翻訳履歴 (Recent Translations)",
+    labelMonitorEmpty: "待機中 (Waiting...)",
+    loading:         "モデルをロード中...",
+    init:            "初期化中...",
+    translatingMsg:  (done, total, eta) => `${done}/${total} 翻訳中 (${eta})`,
+    doneMsg:         (total) => `完了: ${total} 件翻訳`,
+    errorMsg:        (e) => `エラー: ${e}`,
+    dumpLabels: {
+      xmlPath: "XML ファイル",
+      style: "翻訳スタイル",
+      wordwall: "WordWall辞書",
+      skip: "翻訳済みスキップ",
+      used: "使用",
+      unused: "未使用",
+      yes: "あり",
+      no: "なし"
+    },
   },
   en: {
     labelTask:       "Task Input",
@@ -654,6 +779,25 @@ const STRINGS = {
     dumpReady:       "DUMP_READY — translation dump generated",
     startJob:        (p) => `Translation job started: ${p}`,
     styleLabel:      { game: "Game Official", formal: "Formal", casual: "Casual" },
+    labelDumpHeader: "DUMP_READY — translation_dump.json",
+    labelMonitorCurrent: "Current Line",
+    labelMonitorHistory: "Recent Translations",
+    labelMonitorEmpty: "Waiting...",
+    loading:         "Loading model...",
+    init:            "Initializing...",
+    translatingMsg:  (done, total, eta) => `Translating ${done}/${total} (ETA ${eta})`,
+    doneMsg:         (total) => `Done: Translated ${total} items`,
+    errorMsg:        (e) => `Error: ${e}`,
+    dumpLabels: {
+      xmlPath: "XML File",
+      style: "Translation Style",
+      wordwall: "WordWall Dictionary",
+      skip: "Skip Translated",
+      used: "Use",
+      unused: "Do not use",
+      yes: "Yes",
+      no: "No"
+    },
   }
 };
 
@@ -681,6 +825,28 @@ function applyLang() {
   document.getElementById("context-header-text").textContent  = s.contextHeader;
   document.getElementById("btn-free-send").textContent     = s.sendLabel;
   document.getElementById("free-input").placeholder        = s.inputPlaceholder;
+  document.getElementById("label-dump-header").textContent  = s.labelDumpHeader;
+  document.getElementById("label-monitor-current").textContent = s.labelMonitorCurrent;
+  document.getElementById("label-monitor-history").textContent = s.labelMonitorHistory;
+  
+  const emptyRow = document.getElementById("label-monitor-empty");
+  if (emptyRow) {
+    emptyRow.textContent = s.labelMonitorEmpty;
+  }
+  
+  if (lastSummary) {
+    showDumpCard(lastSummary);
+  }
+}
+
+function escapeHtml(str) {
+  if (!str) return "";
+  return str
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
@@ -714,7 +880,6 @@ function loadWordWallInfo() {
       if (d.ok) {
         document.getElementById("ww-file-count").textContent = d.file_count;
         document.getElementById("ww-term-count").textContent = d.vocab_terms.toLocaleString();
-        d.files.forEach(f => appendLog(`[WordWall] ${f.filename} (${f.entry_count} entries)`));
       }
     })
     .catch(e => console.error("WordWall info failed:", e));
@@ -743,31 +908,103 @@ function updateStatusUI(s) {
 
   if (phase === "phase1") {
     box.classList.add("phase1");
-    msgEl.textContent = s.message || t().phase1(s.session_intent || "");
+    msgEl.textContent = t().phase1(s.session_intent || "");
     btnStop.disabled = true;
   } else if (phase === "phase2") {
     box.classList.add("phase2");
-    msgEl.textContent = s.message || t().phase2;
+    msgEl.textContent = t().phase2;
     btnStop.disabled = true;
   } else if (phase === "phase3") {
     box.classList.add("phase3");
-    msgEl.textContent = s.message || t().phase3;
+    msgEl.textContent = t().phase3;
     btnStop.disabled = true;
-  } else if (s.status === "loading" || s.status === "translating") {
+  } else if (s.status === "loading") {
     box.classList.add("translating");
-    msgEl.textContent = t().translating(s.message, pct, s.eta || "--");
+    msgEl.textContent = t().loading;
+    btnStop.disabled = false;
+    pc.classList.add("visible");
+    pb.style.width = pct + "%";
+  } else if (s.status === "translating") {
+    box.classList.add("translating");
+    if (s.total === 0) {
+      msgEl.textContent = t().init;
+    } else {
+      let etaStr = s.eta || "--";
+      if (currentLang === 'en') {
+        etaStr = etaStr.replace('分', 'm ').replace('秒', 's');
+      }
+      msgEl.textContent = t().translatingMsg(s.progress, s.total, etaStr);
+    }
     btnStop.disabled = false;
     pc.classList.add("visible");
     pb.style.width = pct + "%";
   } else if (s.status === "done") {
     box.classList.add("done");
-    msgEl.textContent = t().done(s.message);
+    msgEl.textContent = t().doneMsg(s.total);
+    btnStop.disabled = true;
+    pc.classList.remove("visible");
+  } else if (s.status === "error") {
+    box.classList.add("error");
+    msgEl.textContent = s.message; // Error usually specific
     btnStop.disabled = true;
     pc.classList.remove("visible");
   } else {
-    msgEl.textContent = s.message || t().idle;
+    // idle or stopped
+    if (s.message && s.message.includes("停止")) {
+      msgEl.textContent = t().stopped;
+    } else if (s.message && s.message.includes("エラー")) {
+      box.classList.add("error");
+      msgEl.textContent = s.message;
+    } else {
+      msgEl.textContent = t().idle;
+    }
     btnStop.disabled = true;
     pc.classList.remove("visible");
+  }
+
+  // Update Real-time Translation monitor
+  const currentSrcEl = document.getElementById("monitor-current-source");
+  const currentDestEl = document.getElementById("monitor-current-dest");
+  const historyBody = document.getElementById("monitor-history-body");
+
+  currentSrcEl.textContent = s.current_source || "-";
+  currentDestEl.textContent = s.current_translation || "-";
+
+  const recent = s.recent_translations || [];
+  if (recent.length === 0) {
+    historyBody.innerHTML = `<tr><td colspan="3" class="empty-row" id="label-monitor-empty">${t().labelMonitorEmpty}</td></tr>`;
+  } else {
+    let html = "";
+    // Show newest at the top
+    for (let i = recent.length - 1; i >= 0; i--) {
+      const item = recent[i];
+      html += `<tr>
+        <td style="font-weight:600; color:var(--text-muted);">${item.index}</td>
+        <td style="color:var(--text-secondary);">${escapeHtml(item.source)}</td>
+        <td style="color:var(--accent-blue); font-weight:600;">${escapeHtml(item.translation)}</td>
+      </tr>`;
+    }
+    historyBody.innerHTML = html;
+  }
+
+  // Sync Backend Logs
+  if (s.log_lines) {
+    const logEl = document.getElementById("log");
+    if (s.log_lines.length > lastLogCount) {
+      const isAtBottom = logEl.scrollTop + logEl.clientHeight >= logEl.scrollHeight - 50;
+      
+      const newLines = s.log_lines.slice(lastLogCount);
+      newLines.forEach(line => {
+        logEl.value += `${line}
+`;
+      });
+      
+      lastLogCount = s.log_lines.length;
+      
+      if (isAtBottom || lastLogCount === newLines.length) {
+        logEl.scrollTop = logEl.scrollHeight;
+      }
+    }
   }
 }
 
@@ -780,6 +1017,7 @@ function submitTask() {
 
   document.getElementById("btn-submit").disabled = true;
   hideContextPanel();
+  lastSummary = null;
   hideDumpCard();
   document.getElementById("btn-start-translation").classList.remove("visible");
   document.getElementById("btn-start-translation").style.display = "none";
@@ -891,6 +1129,7 @@ function submitContextAnswer(answer, optionIndex = null) {
       appendLog(t().dumpReady);
       appendLog(`[phase3] DUMP_READY`);
       hideContextPanel();
+      lastSummary = d.summary;
       showDumpCard(d.summary);
       document.getElementById("btn-start-translation").classList.add("visible");
       document.getElementById("btn-start-translation").style.display = "block";
@@ -918,10 +1157,10 @@ function showDumpCard(summary) {
 
   const styleStr = s.styleLabel[summary.style] || summary.style;
   const rows = [
-    ["XML ファイル", summary.xml_path],
-    ["翻訳スタイル", styleStr],
-    ["WordWall辞書", summary.use_wordwall  ? "使用" : "未使用"],
-    ["翻訳済みスキップ", summary.skip_translated ? "あり" : "なし"],
+    [s.dumpLabels.xmlPath, summary.xml_path],
+    [s.dumpLabels.style, styleStr],
+    [s.dumpLabels.wordwall, summary.use_wordwall  ? s.dumpLabels.used : s.dumpLabels.unused],
+    [s.dumpLabels.skip, summary.skip_translated ? s.dumpLabels.yes : s.dumpLabels.no],
   ];
   rows.forEach(([key, val]) => {
     const row = document.createElement("div");
@@ -978,11 +1217,16 @@ function resetSession() {
       if (d.ok) {
         appendLog(t().resetDone);
         hideContextPanel();
+        lastSummary = null;
         hideDumpCard();
         document.getElementById("btn-submit").disabled = false;
         document.getElementById("btn-start-translation").style.display = "none";
         document.getElementById("btn-start-translation").classList.remove("visible");
         document.getElementById("task-input").value = "";
+        
+        // Reset logs
+        lastLogCount = 0;
+        document.getElementById("log").value = "";
       }
     });
 }
@@ -993,7 +1237,8 @@ function resetSession() {
 function appendLog(text) {
   const log = document.getElementById("log");
   const ts  = new Date().toLocaleTimeString();
-  log.textContent += `[${ts}] ${text}\n`;
+  log.value += `[${ts}] ${text}
+`;
   log.scrollTop = log.scrollHeight;
 }
 </script>

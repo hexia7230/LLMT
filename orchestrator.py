@@ -14,21 +14,16 @@ import os, re, gc, json, threading, time, webbrowser, uuid
 from datetime import datetime
 import xml.etree.ElementTree as ET
 from flask import Flask, request, jsonify, send_from_directory
-from transformers import AutoModelForCausalLM, AutoTokenizer, pipeline as hf_pipeline
-import torch
+from deep_translator import GoogleTranslator
 
 # ── Paths ─────────────────────────────────────────────────────────────────────
 BASE_DIR              = os.path.dirname(os.path.abspath(__file__))
-MODEL_CACHE_DIR       = os.path.join(BASE_DIR, "Cache", "model")
 WORDWALL_DIR          = os.path.join(BASE_DIR, "WordWall")
 DUMP_DIR              = os.path.expanduser("~/local_agent")
 TRANSLATION_DUMP_PATH = os.path.join(DUMP_DIR, "translation_dump.json")
 
-os.makedirs(MODEL_CACHE_DIR, exist_ok=True)
 os.makedirs(WORDWALL_DIR, exist_ok=True)
 os.makedirs(DUMP_DIR, exist_ok=True)
-
-TARGET_MODEL = "meta-llama/Llama-3.2-3B-Instruct"
 
 # ── Global state ──────────────────────────────────────────────────────────────
 state = {
@@ -39,10 +34,25 @@ state = {
     "total":     0,
     "eta":       "--",
     "log_lines": [],
+    "current_source":      "",
+    "current_translation": "",
+    "recent_translations": [],
 }
 state_lock = threading.Lock()
 stop_event = threading.Event()
-pipe_obj   = None
+
+import atexit
+active_sub_process = None
+
+def _cleanup_sub_process():
+    global active_sub_process
+    if active_sub_process and active_sub_process.poll() is None:
+        try:
+            active_sub_process.kill()
+        except Exception:
+            pass
+
+atexit.register(_cleanup_sub_process)
 
 
 def _log(msg: str):
@@ -272,6 +282,28 @@ def _is_japanese(text: str) -> bool:
               "\u30a0" <= c <= "\u30ff")
     return cjk / max(len(text), 1) > 0.30
 
+def _is_english(text: str) -> bool:
+    if not text:
+        return False
+    alpha = sum(1 for c in text if c.isascii() and c.isalpha())
+    return alpha / max(len(text), 1) > 0.50
+
+def _has_japanese(text: str) -> bool:
+    if not text:
+        return False
+    return any(
+        "\u3000" <= c <= "\u9fff" or
+        "\uf900" <= c <= "\ufaff" or
+        "\u3040" <= c <= "\u309f" or
+        "\u30a0" <= c <= "\u30ff"
+        for c in text
+    )
+
+def _has_english(text: str) -> bool:
+    if not text:
+        return False
+    return any(c.isascii() and c.isalpha() for c in text)
+
 
 # ── Intent Classification ─────────────────────────────────────────────────────
 
@@ -303,36 +335,65 @@ def _classify_intent(text: str) -> str:
 # ══════════════════════════════════════════════════════════════════════════════
 
 STYLE_PROMPTS = {
-    "game": (
-        "You are a Skyrim MOD Japanese localization engine.\n\n"
-        "STRICT RULES:\n"
-        "1. Output ONLY the Japanese translation — no English, no explanations, no labels, no quotes.\n"
-        "2. One sentence in → one sentence out. One word in → one word out.\n"
-        "3. Preserve placeholders exactly: {{BASH:…}}, [PlayerName], <Alias=…>, %s, %d, \\n, \\t.\n"
-        "4. Do NOT add parentheses or romaji.\n"
-        "5. Do NOT start with 翻訳:, 日本語:, or any label.\n\n"
-        "STYLE: Terse, blunt, official Skyrim tone. No ます/です unless speaker is nobility.\n"
-        "俺=fighters/commoners, 私=scholars/nobles, 我=ancient/divine.\n\n"
-        "Translate now:"
-    ),
-    "formal": (
-        "You are a Japanese localization engine.\n\n"
-        "STRICT RULES:\n"
-        "1. Output ONLY the Japanese translation — no English, no explanations, no labels.\n"
-        "2. One sentence in → one sentence out.\n"
-        "3. Preserve placeholders exactly: {{BASH:…}}, [PlayerName], <Alias=…>, %s, %d, \\n, \\t.\n\n"
-        "STYLE: Formal, polite Japanese. Use です/ます forms consistently.\n\n"
-        "Translate now:"
-    ),
-    "casual": (
-        "You are a Japanese localization engine.\n\n"
-        "STRICT RULES:\n"
-        "1. Output ONLY the Japanese translation — no English, no explanations, no labels.\n"
-        "2. One sentence in → one sentence out.\n"
-        "3. Preserve placeholders exactly: {{BASH:…}}, [PlayerName], <Alias=…>, %s, %d, \\n, \\t.\n\n"
-        "STYLE: Casual, friendly Japanese. Use だ/である forms. Natural conversational tone.\n\n"
-        "Translate now:"
-    ),
+    "ja": {
+        "game": (
+            "You are a Skyrim MOD Japanese localization engine.\n\n"
+            "STRICT RULES:\n"
+            "1. Output ONLY the Japanese translation — no English, no explanations, no labels, no quotes.\n"
+            "2. One sentence in → one sentence out. One word in → one word out.\n"
+            "3. Preserve placeholders exactly: {{BASH:…}}, [PlayerName], <Alias=…>, %s, %d, \\n, \\t.\n"
+            "4. Do NOT add parentheses or romaji.\n"
+            "5. Do NOT start with 翻訳:, 日本語:, or any label.\n\n"
+            "STYLE: Terse, blunt, official Skyrim tone. No ます/です unless speaker is nobility.\n"
+            "俺=fighters/commoners, 私=scholars/nobles, 我=ancient/divine.\n\n"
+            "Translate now:"
+        ),
+        "formal": (
+            "You are a Japanese localization engine.\n\n"
+            "STRICT RULES:\n"
+            "1. Output ONLY the Japanese translation — no English, no explanations, no labels.\n"
+            "2. One sentence in → one sentence out.\n"
+            "3. Preserve placeholders exactly: {{BASH:…}}, [PlayerName], <Alias=…>, %s, %d, \\n, \\t.\n\n"
+            "STYLE: Formal, polite Japanese. Use です/ます forms consistently.\n\n"
+            "Translate now:"
+        ),
+        "casual": (
+            "You are a Japanese localization engine.\n\n"
+            "STRICT RULES:\n"
+            "1. Output ONLY the Japanese translation — no English, no explanations, no labels.\n"
+            "2. One sentence in → one sentence out.\n"
+            "3. Preserve placeholders exactly: {{BASH:…}}, [PlayerName], <Alias=…>, %s, %d, \\n, \\t.\n\n"
+            "STYLE: Casual, friendly Japanese. Use だ/である forms. Natural conversational tone.\n\n"
+            "Translate now:"
+        ),
+    },
+    "en": {
+        "game": (
+            "You are an English localization engine. Translate the given Japanese game text into English.\n\n"
+            "STRICT RULES:\n"
+            "1. Output ONLY the English translation.\n"
+            "2. One sentence in → one sentence out. One word in → one word out.\n"
+            "3. Preserve placeholders exactly: {{BASH:…}}, [PlayerName], <Alias=…>, %s, %d, \\n, \\t.\n"
+            "STYLE: Natural English suitable for a fantasy RPG like Skyrim.\n\n"
+            "Translate now:"
+        ),
+        "formal": (
+            "You are an English localization engine. Translate the given Japanese text into English.\n\n"
+            "STRICT RULES:\n"
+            "1. Output ONLY the English translation.\n"
+            "2. Preserve placeholders exactly.\n"
+            "STYLE: Formal, polite English.\n\n"
+            "Translate now:"
+        ),
+        "casual": (
+            "You are an English localization engine. Translate the given Japanese text into English.\n\n"
+            "STRICT RULES:\n"
+            "1. Output ONLY the English translation.\n"
+            "2. Preserve placeholders exactly.\n"
+            "STYLE: Casual, friendly, conversational English.\n\n"
+            "Translate now:"
+        ),
+    }
 }
 
 
@@ -348,27 +409,31 @@ class SessionState:
             "key":      "xml_path",
             "text_ja":  "翻訳するXMLファイルのフルパスを入力してください",
             "text_en":  "Enter the full path to the XML file to translate",
-            "options":  None,
+            "options_ja": None,
+            "options_en": None,
         },
         {
             "key":           "style",
             "text_ja":       "翻訳スタイルを選んでください",
             "text_en":       "Choose a translation style",
-            "options":       ["ゲーム公式準拠（推奨）", "フォーマル", "カジュアル"],
+            "options_ja":    ["ゲーム公式準拠（推奨）", "フォーマル", "カジュアル"],
+            "options_en":    ["Game Official (Recommended)", "Formal", "Casual"],
             "option_values": ["game", "formal", "casual"],
         },
         {
             "key":           "use_wordwall",
             "text_ja":       "WordWall辞書を使いますか？（固有名詞の一貫性が向上します）",
             "text_en":       "Use WordWall dictionary? (improves proper noun consistency)",
-            "options":       ["使う（推奨）", "使わない"],
+            "options_ja":    ["使う（推奨）", "使わない"],
+            "options_en":    ["Use (Recommended)", "Do not use"],
             "option_values": [True, False],
         },
         {
             "key":           "skip_translated",
             "text_ja":       "翻訳済みエントリはスキップしますか？",
             "text_en":       "Skip already-translated entries?",
-            "options":       ["スキップする（推奨）", "再翻訳する"],
+            "options_ja":    ["スキップする（推奨）", "再翻訳する"],
+            "options_en":    ["Skip (Recommended)", "Re-translate"],
             "option_values": [True, False],
         },
     ]
@@ -384,6 +449,7 @@ class SessionState:
         self.style           = "game"
         self.use_wordwall    = True
         self.skip_translated = True
+        self.target_lang     = "ja"
         self.user_request    = ""
         self.phase           = "idle"
         self.question_idx    = 0
@@ -403,7 +469,7 @@ class SessionState:
         return {
             "key":          q["key"],
             "text":         q["text_ja"] if lang == "ja" else q["text_en"],
-            "options":      q.get("options"),
+            "options":      q.get("options_ja") if lang == "ja" else q.get("options_en"),
             "option_values":q.get("option_values"),
             "index":        self.question_idx,
             "total":        len(qs),
@@ -426,10 +492,14 @@ class SessionState:
         else:
             val = answer.strip()
             # テキスト回答を option_values にマッピング
-            if q.get("options") and q.get("option_values"):
-                for i, opt in enumerate(q["options"]):
+            opts = q.get("options_ja") or []
+            if q.get("options_en"):
+                opts = opts + q.get("options_en")
+            if opts and q.get("option_values"):
+                for i, opt in enumerate(opts):
                     if answer.strip() == opt:
-                        val = q["option_values"][i]
+                        val_idx = i % len(q["option_values"])
+                        val = q["option_values"][val_idx]
                         break
 
         if   key == "xml_path":
@@ -437,9 +507,9 @@ class SessionState:
         elif key == "style":
             self.style = val if val in STYLE_PROMPTS else "game"
         elif key == "use_wordwall":
-            self.use_wordwall = val if isinstance(val, bool) else (val != "使わない")
+            self.use_wordwall = val if isinstance(val, bool) else (val != "使わない" and val != "Do not use")
         elif key == "skip_translated":
-            self.skip_translated = val if isinstance(val, bool) else (val != "再翻訳する")
+            self.skip_translated = val if isinstance(val, bool) else (val != "再翻訳する" and val != "Re-translate")
 
         self.question_idx += 1
         return True
@@ -455,6 +525,7 @@ class SessionState:
             "style":          self.style,
             "use_wordwall":   self.use_wordwall,
             "skip_translated":self.skip_translated,
+            "target_lang":    self.target_lang,
             "user_request":   self.user_request or self.original_prompt,
             "status":         "READY_FOR_TRANSLATION",
         }
@@ -488,14 +559,14 @@ def _write_translation_dump() -> dict:
 # ══════════════════════════════════════════════════════════════════════════════
 
 _BAD_PREFIX_RE = re.compile(
-    r"^(?:The Japanese (?:translation|equivalent|for|would be)|"
-    r"In Japanese[,:]?|Translation[s]?[：:]|Note[：:]|Explanation[：:]|"
+    r"^(?:The (?:English|Japanese) (?:translation|equivalent|for|would be)|"
+    r"In (?:English|Japanese)[,:]?|Translation[s]?[：:]|Note[：:]|Explanation[：:]|"
     r"日本語[訳：:]\s*|翻訳[：:]\s*)",
     re.IGNORECASE,
 )
 _TRAILING_PAREN_RE = re.compile(r"\s*[\(\[].*?[\)\]]\s*$")
 
-def _clean(raw: str, src: str) -> str:
+def _clean(raw: str, src: str, target_lang: str = "ja") -> str:
     text = raw.strip()
     for stop in ("<|eot_id|>", "<|end_of_text|>", "<|im_end|>", "<|im_start|>", "<|endoftext|>"):
         if stop in text:
@@ -510,15 +581,20 @@ def _clean(raw: str, src: str) -> str:
     text = _TRAILING_PAREN_RE.sub("", text).strip()
     if not text:
         return src
-    has_cjk = any(
-        "\u3000" <= c <= "\u9fff" or
-        "\u30a0" <= c <= "\u30ff" or
-        "\u3040" <= c <= "\u309f"
-        for c in text
-    )
-    if not has_cjk:
-        ascii_alpha = sum(1 for c in text if c.isascii() and c.isalpha())
-        if len(text) > 0 and ascii_alpha / len(text) > 0.55:
+    if target_lang == "ja":
+        has_cjk = any(
+            "\u3000" <= c <= "\u9fff" or
+            "\u30a0" <= c <= "\u30ff" or
+            "\u3040" <= c <= "\u309f"
+            for c in text
+        )
+        if not has_cjk:
+            ascii_alpha = sum(1 for c in text if c.isascii() and c.isalpha())
+            if len(text) > 0 and ascii_alpha / len(text) > 0.55:
+                return src
+    else:
+        # For English target, fallback if output has Japanese but no English
+        if _has_japanese(text) and not _has_english(text):
             return src
     return text
 
@@ -527,72 +603,35 @@ def _clean(raw: str, src: str) -> str:
 #  PROMPT BUILDER
 # ══════════════════════════════════════════════════════════════════════════════
 
-def _build_prompt(text: str, style: str = "game") -> str:
-    """Llama 3.2 Instruct 形式のプロンプトを構築。スタイル別システムプロンプト使用。"""
-    system = STYLE_PROMPTS.get(style, STYLE_PROMPTS["game"])
-    return (
-        "<|begin_of_text|>"
-        "<|start_header_id|>system<|end_header_id|>\n\n"
-        f"{system}<|eot_id|>"
-        "<|start_header_id|>user<|end_header_id|>\n\n"
-        f"{text}<|eot_id|>"
-        "<|start_header_id|>assistant<|end_header_id|>\n\n"
-    )
+def _build_prompt(text: str, style: str = "game", mt_text: str = None, target_lang: str = "ja") -> str:
+    """Qwen 2.5 Instruct (ChatML) 形式のプロンプトを構築。スタイル別システムプロンプト使用。"""
+    system = STYLE_PROMPTS[target_lang].get(style, STYLE_PROMPTS[target_lang]["game"])
+    lang_name = "Japanese" if target_lang == "ja" else "English"
+    if mt_text:
+        return (
+            "<|im_start|>system\n"
+            f"{system}<|im_end|>\n"
+            "<|im_start|>user\n"
+            f"Original: {text}\n"
+            f"Machine Translation: {mt_text}\n"
+            f"Refine the translation to match the required style. Output ONLY the refined {lang_name} text.<|im_end|>\n"
+            "<|im_start|>assistant\n"
+        )
+    else:
+        return (
+            "<|im_start|>system\n"
+            f"{system}<|im_end|>\n"
+            "<|im_start|>user\n"
+            f"{text}<|im_end|>\n"
+            "<|im_start|>assistant\n"
+        )
 
 
 # ══════════════════════════════════════════════════════════════════════════════
 #  MODEL
 # ══════════════════════════════════════════════════════════════════════════════
 
-def _ensure_model() -> bool:
-    global pipe_obj
-    if pipe_obj is not None:
-        return True
-    try:
-        _log(f"[model] Loading {TARGET_MODEL} ...")
-        _set(status="loading", phase="loading", message="モデルをロード中...")
-        device = "cuda" if torch.cuda.is_available() else "cpu"
-        dtype  = torch.float16 if device == "cuda" else torch.float32
-        _log(f"[model] device={device.upper()}  dtype={dtype}")
-        tok = AutoTokenizer.from_pretrained(TARGET_MODEL, cache_dir=MODEL_CACHE_DIR)
-        mdl = AutoModelForCausalLM.from_pretrained(
-            TARGET_MODEL,
-            torch_dtype=dtype,
-            device_map="auto" if device == "cuda" else None,
-            low_cpu_mem_usage=True,
-            cache_dir=MODEL_CACHE_DIR,
-        )
-        pipe_obj = hf_pipeline(
-            "text-generation",
-            model=mdl, tokenizer=tok,
-            max_new_tokens=128,
-            do_sample=False,
-            temperature=None, top_p=None,
-            repetition_penalty=1.15,
-        )
-        _log("[model] Ready.")
-        return True
-    except Exception as e:
-        _log(f"[model ERROR] {e}")
-        _set(status="idle", phase="idle", message=f"モデルロードエラー: {e}")
-        return False
-
-
-# ══════════════════════════════════════════════════════════════════════════════
-#  SINGLE TRANSLATION ENTRY
-# ══════════════════════════════════════════════════════════════════════════════
-
-def _translate_one(src: str, style: str = "game") -> str:
-    prompt = _build_prompt(src, style)
-    try:
-        out    = pipe_obj(prompt)[0]["generated_text"]
-        marker = "<|start_header_id|>assistant<|end_header_id|>\n\n"
-        idx    = out.rfind(marker)
-        reply  = out[idx + len(marker):] if idx != -1 else out[len(prompt):]
-        return _clean(reply, src)
-    except Exception as e:
-        _log(f"[llm ERROR] {e}")
-        return src
+# ── Removed unused LLM functions ──────────────────────────────────────────────
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -600,80 +639,148 @@ def _translate_one(src: str, style: str = "game") -> str:
 # ══════════════════════════════════════════════════════════════════════════════
 
 def _translate_worker(xml_path: str, style: str = "game",
-                      use_wordwall: bool = True, skip_translated: bool = True):
+                      use_wordwall: bool = True, skip_translated: bool = True, target_lang: str = "ja"):
     """
-    XML ファイルを翻訳するメインワーカー。
-    translation_dump.json の設定に基づいてスタイル・辞書・スキップを制御する。
+    translator.py をサブプロセスで起動し、ファイルベースIPCでステータスを監視するワーカー。
+    パイプ（stdout）は使わず、translation_status.json をポーリングする。
     """
-    stop_event.clear()
-    _set(status="translating", phase="translating",
-         message="初期化中", progress=0, total=0, eta="--")
+    import subprocess
+    import sys
+    global active_sub_process
 
-    if not _ensure_model():
-        return
+    # 前回のプロセスを強制終了
+    if active_sub_process and active_sub_process.poll() is None:
+        try:
+            active_sub_process.kill()
+            active_sub_process.wait(timeout=1)
+        except Exception:
+            pass
+
+    stop_event.clear()
+    _set(status="loading", phase="translating",
+         message="サブエージェントを起動中...", progress=0, total=0, eta="--",
+         current_source="", current_translation="", recent_translations=[])
+
+    sub_agent_script = os.path.join(BASE_DIR, "translator.py")
+    status_file = os.path.expanduser("~/local_agent/translation_status.json")
+
+    # 古いステータスファイルを削除して誤読みを防ぐ
+    try:
+        if os.path.exists(status_file):
+            os.remove(status_file)
+    except Exception:
+        pass
 
     try:
-        tree = ET.parse(xml_path)
-        root = tree.getroot()
+        _log(f"[orchestrator] Launching sub-agent: {sub_agent_script}")
+        env = os.environ.copy()
+        env["PYTHONIOENCODING"] = "utf-8"
+        env["TQDM_DISABLE"] = "1"
+        env["HF_HUB_DISABLE_SYMLINKS_WARNING"] = "1"
+        env["HF_HUB_DISABLE_PROGRESS_BARS"] = "1"
 
-        work = []
-        for e in root.findall(".//String"):
-            sn = e.find("Source")
-            dn = e.find("Dest")
-            if sn is None or dn is None:
-                continue
-            src  = (sn.text or "").strip()
-            dest = (dn.text or "").strip()
-            if not src:
-                continue
-            # 翻訳済みスキップ
-            if skip_translated and dest and dest != src and _is_japanese(dest):
-                continue
-            # 英語なし → 語彙マップのみ適用
-            if not _needs_llm(src):
-                if use_wordwall:
-                    replaced = _VOCAB_RE.sub(_vocab_sub, src)
-                    if replaced != src:
-                        dn.text = replaced
-                continue
-            work.append((src, dn))
+        proc = subprocess.Popen(
+            [sys.executable, "-u", sub_agent_script, TRANSLATION_DUMP_PATH],
+            stdout=subprocess.DEVNULL,   # stdout は使わない（ファイルIPCに変更）
+            stderr=subprocess.PIPE,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            env=env,
+        )
+        active_sub_process = proc
 
-        total = len(work)
-        _set(total=total, progress=0)
-        _log(f"[worker] {total} entries to translate | style={style} ww={use_wordwall} skip={skip_translated}")
+        # stderr をバックグラウンドで読んでログに出す
+        def _drain_stderr(p):
+            try:
+                for line in p.stderr:
+                    stripped = line.rstrip()
+                    if stripped:
+                        _log(f"[sub-agent] {stripped}")
+            except Exception:
+                pass
+        threading.Thread(target=_drain_stderr, args=(proc,), daemon=True).start()
 
-        start   = time.time()
-        stopped = False
-        for idx, (src, dn) in enumerate(work):
+        last_progress = -1
+
+        # ── ポーリングループ ──────────────────────────────────────────────────
+        while proc.poll() is None:
             if stop_event.is_set():
-                _log("[worker] Stopped.")
-                stopped = True
-                break
-            dn.text = _translate_one(src, style)
-            done    = idx + 1
-            elapsed = time.time() - start
-            remain  = (total - done) * elapsed / done if done else 0
-            _set(
-                progress=done,
-                message=f"{done}/{total} 翻訳中",
-                eta=f"{int(remain//60)}分{int(remain%60)}秒",
-            )
-            if done % 50 == 0:
-                _log(f"[worker] {done}/{total} ({done*100//total}%) | {src[:50]!r}")
-                gc.collect()
+                _log("[orchestrator] Stop requested. Terminating sub-agent...")
+                proc.terminate()
+                try:
+                    proc.wait(timeout=3)
+                except subprocess.TimeoutExpired:
+                    proc.kill()
+                _set(status="idle", phase="idle", message="翻訳を中断しました")
+                return
 
-        # 中断された場合はファイルを保存しない（破損XMLの上書きを防ぐ）
-        if not stopped:
-            ET.indent(tree, space="  ")
-            tree.write(xml_path, encoding="UTF-8", xml_declaration=True)
-            _log(f"[worker] Saved -> {xml_path}")
-            _set(status="done", phase="done", message=f"完了: {total} 件翻訳")
-        else:
-            _set(status="idle", phase="idle", message="翻訳を中断しました（ファイルは変更されていません）")
+            # ステータスファイルを読む
+            try:
+                if os.path.exists(status_file):
+                    with open(status_file, "r", encoding="utf-8") as f:
+                        attrs = json.load(f)
+
+                    updates = {}
+                    if "status"   in attrs: updates["status"]              = attrs["status"]
+                    if "message"  in attrs: updates["message"]             = attrs["message"]
+                    if "progress" in attrs: updates["progress"]            = attrs["progress"]
+                    if "total"    in attrs: updates["total"]               = attrs["total"]
+                    if "eta"      in attrs: updates["eta"]                 = attrs["eta"]
+                    if "src"      in attrs: updates["current_source"]      = attrs["src"]
+                    if "dest"     in attrs: updates["current_translation"] = attrs["dest"]
+
+                    if updates:
+                        with state_lock:
+                            for k, v in updates.items():
+                                state[k] = v
+
+                            cur_prog = updates.get("progress", -1)
+                            if (cur_prog != last_progress and cur_prog > 0
+                                    and "current_source" in updates
+                                    and "current_translation" in updates):
+                                last_progress = cur_prog
+                                src_val = updates["current_source"]
+                                exists = (state["recent_translations"]
+                                          and state["recent_translations"][-1]["source"] == src_val)
+                                if not exists:
+                                    state["recent_translations"].append({
+                                        "index":       cur_prog,
+                                        "source":      src_val,
+                                        "translation": updates["current_translation"],
+                                    })
+                                    if len(state["recent_translations"]) > 50:
+                                        state["recent_translations"].pop(0)
+            except Exception:
+                pass  # ファイルが書き込み中の瞬間は無視
+
+            time.sleep(0.5)
+
+        # プロセス終了後、最終ステータスを読む
+        proc.wait()
+        try:
+            if os.path.exists(status_file):
+                with open(status_file, "r", encoding="utf-8") as f:
+                    final = json.load(f)
+                final_status = final.get("status", "")
+            else:
+                final_status = ""
+        except Exception:
+            final_status = ""
+
+        if not stop_event.is_set():
+            if proc.returncode == 0 or final_status == "done":
+                _log("[orchestrator] Sub-agent finished successfully.")
+                _set(status="done", phase="done", message="翻訳完了")
+            else:
+                _log(f"[orchestrator ERROR] Sub-agent exit code={proc.returncode}")
+                _set(status="error",
+                     message=f"サブエージェントがエラー終了 (code={proc.returncode})")
 
     except Exception as e:
-        _log(f"[worker ERROR] {e}")
-        _set(status="idle", phase="idle", message=f"エラー: {e}")
+        _log(f"[orchestrator ERROR] Failed to run sub-agent: {e}")
+        _set(status="error", message=f"エラー: {e}")
+
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -783,9 +890,26 @@ def api_respond():
     if session.is_complete():
         # ── Phase 3: translation dump → DUMP_READY ───────────────────────────
         session.phase = "phase3"
+        session.target_lang = "ja" if lang == "ja" else "en"
         _set(phase="phase3", message="[Phase 3] 翻訳ダンプを生成中...")
         payload = _write_translation_dump()
-        _set(phase="phase3", message="[Phase 3] DUMP_READY — 翻訳を開始できます")
+        
+        # Auto-launch sub-agent process (Phase 5 requirement)
+        xml_path        = payload.get("xml_path", "")
+        style           = payload.get("style", "game")
+        use_wordwall    = payload.get("use_wordwall", True)
+        skip_translated = payload.get("skip_translated", True)
+        target_lang     = payload.get("target_lang", "ja")
+        
+        session.phase = "done"
+        _log(f"[auto_start] Auto-launching sub-agent for {xml_path}")
+        threading.Thread(
+            target=_translate_worker,
+            args=(xml_path, style, use_wordwall, skip_translated, target_lang),
+            daemon=True,
+        ).start()
+        
+        _set(phase="phase3", message="[Phase 3] DUMP_READY — 翻訳を開始しました")
         return jsonify({
             "ok":     True,
             "action": "dump_ready",
@@ -796,6 +920,7 @@ def api_respond():
                 "style":          session.style,
                 "use_wordwall":   session.use_wordwall,
                 "skip_translated":session.skip_translated,
+                "target_lang":    session.target_lang,
             },
         })
     else:
@@ -821,7 +946,7 @@ def api_start_translation():
     with state_lock:
         cur_status = state["status"]
     if cur_status in ("translating", "loading"):
-        return jsonify({"ok": False, "error": "既に翻訳中です"})
+        return jsonify({"ok": True, "xml_path": session.xml_path, "style": session.style, "already_running": True})
 
     if not os.path.exists(TRANSLATION_DUMP_PATH):
         return jsonify({"ok": False, "error": "translation_dump.json が見つかりません"})
@@ -842,15 +967,16 @@ def api_start_translation():
     style           = dump.get("style", "game")
     use_wordwall    = dump.get("use_wordwall", True)
     skip_translated = dump.get("skip_translated", True)
+    target_lang     = dump.get("target_lang", "ja")
 
     if not xml_path or not os.path.exists(xml_path):
         return jsonify({"ok": False, "error": f"XMLファイルが見つかりません: {xml_path}"})
 
     session.phase = "done"
-    _log(f"[start_translation] xml={xml_path}  style={style}  ww={use_wordwall}  skip={skip_translated}")
+    _log(f"[start_translation] xml={xml_path}  style={style}  ww={use_wordwall}  skip={skip_translated} target={target_lang}")
     threading.Thread(
         target=_translate_worker,
-        args=(xml_path, style, use_wordwall, skip_translated),
+        args=(xml_path, style, use_wordwall, skip_translated, target_lang),
         daemon=True,
     ).start()
     return jsonify({"ok": True, "xml_path": xml_path, "style": style})
@@ -881,7 +1007,8 @@ def api_stop():
 @app.route("/api/reset", methods=["POST"])
 def api_reset():
     session.reset()
-    _set(status="idle", phase="idle", message="待機中", progress=0, total=0, eta="--")
+    _set(status="idle", phase="idle", message="待機中", progress=0, total=0, eta="--",
+         current_source="", current_translation="", recent_translations=[])
     _log("[system] Session reset")
     return jsonify({"ok": True})
 

@@ -1,0 +1,61 @@
+        return False
+    return any(c.isascii() and c.isalpha() for c in text)
+
+
+# ── Output cleaner ────────────────────────────────────────────────────────────
+_BAD_PREFIX_RE = re.compile(
+    r"^(?:The Japanese (?:translation|equivalent|for|would be)|"
+    r"In Japanese[,:]?|Translation[s]?[：:]|Note[：:]|Explanation[：:]|"
+    r"日本語[訳：:]\s*|翻訳[：:]\s*)",
+    re.IGNORECASE,
+)
+_TRAILING_PAREN_RE = re.compile(r"\s*[\(\[].*?[\)\]]\s*$")
+
+def _clean(raw: str, src: str) -> str:
+    text = raw.strip()
+    # Strip Llama / Qwen special tokens
+    for stop in ("<|eot_id|>", "<|end_of_text|>", "<|im_end|>", "<|im_start|>", "<|endoftext|>"):
+        if stop in text:
+            text = text[:text.index(stop)].strip()
+    if not text:
+        return src
+    lines = [l.strip() for l in text.splitlines() if l.strip()]
+    if not lines:
+        return src
+    text = lines[0]
+    text = _BAD_PREFIX_RE.sub("", text).strip()
+    text = _TRAILING_PAREN_RE.sub("", text).strip()
+    if not text:
+        return src
+    # If output contains virtually no non-ASCII (i.e. still mostly Latin), fallback
+--
+            do_sample=False,
+            temperature=None, top_p=None,
+            repetition_penalty=1.15,
+        )
+        _log("[model] Ready.")
+        return True
+    except Exception as e:
+        _log(f"[model ERROR] {e}")
+        _set(status="idle", message=f"モデルロードエラー: {e}")
+        return False
+
+
+# ── Single entry ──────────────────────────────────────────────────────────────
+def _translate_one(src: str, mt_text: str = None, target_lang: str = "ja") -> str:
+    prompt = _build_prompt(src, mt_text, target_lang)
+    try:
+        out    = pipe_obj(prompt)[0]["generated_text"]
+        # Extract only the assistant reply after the last assistant header
+        marker = "<|im_start|>assistant\n"
+        idx    = out.rfind(marker)
+        reply  = out[idx + len(marker):] if idx != -1 else out[len(prompt):]
+        return _clean(reply, src, target_lang)
+    except Exception as e:
+        _log(f"[llm ERROR] {e}")
+        return src
+
+
+# ── Worker ────────────────────────────────────────────────────────────────────
+def _translate_worker(xml_path: str, target_lang: str = "ja"):
+    stop_event.clear()

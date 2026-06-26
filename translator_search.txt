@@ -1,0 +1,5 @@
+0156: # ── Classifiers ─────────────────────�def _clean(raw: str, src: str, target_lang: str = "ja") -> str:
+0214: def _clean(raw: str, src: str) -> str:
+0324: def _translate_one(src: str, mt_text: str = None, target_lang: str = "ja") -> str:
+0332:         return _clean(reply, src, target_lang)
+0407:                 dest = _translate_one(src, mt_text, target_lang)

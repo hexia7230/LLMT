@@ -4,3 +4,4 @@ accelerate
 safetensors
 bitsandbytes
 sentencepiece
+deep-translator

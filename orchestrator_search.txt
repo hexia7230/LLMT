@@ -1,0 +1,2 @@
+0555: def _clean(raw: str, src: str, target_lang: str = "ja") -> str:
+0666:         return _clean(reply, src, target_lang)

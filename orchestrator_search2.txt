@@ -1,0 +1,30 @@
+    re.IGNORECASE,
+)
+_TRAILING_PAREN_RE = re.compile(r"\s*[\(\[].*?[\)\]]\s*$")
+
+def _clean(raw: str, src: str, target_lang: str = "ja") -> str:
+    text = raw.strip()
+    for stop in ("<|eot_id|>", "<|end_of_text|>", "<|im_end|>", "<|im_start|>", "<|endoftext|>"):
+        if stop in text:
+            text = text[:text.index(stop)].strip()
+    if not text:
+        return src
+    lines = [l.strip() for l in text.splitlines() if l.strip()]
+    if not lines:
+        return src
+    text = lines[0]
+    text = _BAD_PREFIX_RE.sub("", text).strip()
+    text = _TRAILING_PAREN_RE.sub("", text).strip()
+    if not text:
+        return src
+    if target_lang == "ja":
+        # 日本語求めなのに英語まま出力された場合は元のテキストにフォールバック
+        has_cjk = any(
+            "\u3000" <= c <= "\u9fff" or
+            "\u30a0" <= c <= "\u30ff" or
+            "\u3040" <= c <= "\u309f"
+            for c in text
+        )
+        if not has_cjk:
+            ascii_alpha = sum(1 for c in text if c.isascii() and c.isalpha())
+            if len(text) > 0 and ascii_alpha / len(text) > 0.55:
